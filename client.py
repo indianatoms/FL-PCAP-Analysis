@@ -3,6 +3,7 @@ import flwr as fl
 import numpy as np
 
 from sklearn.linear_model import LogisticRegression
+from sklearn import tree
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import log_loss
 
@@ -16,20 +17,31 @@ if __name__ == "__main__":
     partition_id = np.random.choice(10)
     (X_train, y_train) = utils.partition(X_train, y_train, 10)[partition_id]
 
-    #Create LogisticRegression Model
+    # Create LogisticRegression Model
     model = LogisticRegression(
+        C=1.0,
+        class_weight=None,
+        dual=False,
+        fit_intercept=True,
+        intercept_scaling=1,
+        l1_ratio=None,
+        max_iter=5000,
+        multi_class="multinomial",
+        n_jobs=None,
         penalty="l2",
-        max_iter=1,  # local epoch
-        warm_start=True,  # prevent refreshing weights when fitting
+        random_state=123,
+        solver="newton-cg",
+        tol=0.0001,
+        verbose=0,
+        warm_start=False,
     )
-
 
     # Setting initial parameters, akin to model.compile for keras models
     utils.set_initial_params(model)
 
     # Define Flower client
     class MnistClient(fl.client.NumPyClient):
-        #ONLY get_parameters, fit, evaluate and get_properties will be evaluated
+        # ONLY get_parameters, fit, evaluate and get_properties will be evaluated
         def get_parameters(self, config):  # type: ignore
             return utils.get_model_parameters(model)
 
