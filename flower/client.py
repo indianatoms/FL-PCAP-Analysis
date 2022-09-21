@@ -7,7 +7,7 @@ from sklearn import tree
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import log_loss
 
-import utils
+import flower.utils as utils
 
 if __name__ == "__main__":
     # Load UNSW
