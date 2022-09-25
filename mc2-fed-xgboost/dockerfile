@@ -1,0 +1,14 @@
+FROM ubuntu:22.04
+
+RUN apt update
+RUN apt install cmake libmbedtls-dev git python3 python3-pip -y
+RUN git clone --recursive https://github.com/mc2-project/federated-xgboost.git
+RUN pip3 install numpy grpcio grpcio-tools
+RUN mkdir federated-xgboost/build
+
+WORKDIR "/federated-xgboost/build"
+RUN cmake ..
+RUN make
+
+WORKDIR "/federated-xgboost/python-package"
+RUN python3 setup.py install
