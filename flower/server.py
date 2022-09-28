@@ -1,5 +1,5 @@
 import flwr as fl
-import flower.utils as utils
+import utils
 from sklearn.metrics import log_loss
 from sklearn.linear_model import LogisticRegression
 from typing import Dict

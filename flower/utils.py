@@ -1,9 +1,9 @@
 from typing import Tuple, Union, List
 import numpy as np
 from sklearn.linear_model import LogisticRegression
-import openml
-from sklearn.model_selection import train_test_split
 import pandas as pd
+from sklearn.model_selection import train_test_split
+import openml
 
 XY = Tuple[np.ndarray, np.ndarray]
 Dataset = Tuple[XY, XY]
@@ -44,7 +44,7 @@ def set_initial_params(model: LogisticRegression):
     """
     n_classes = 2  # MNIST has 10 classes
     n_features = 188  # Number of features in dataset
-    model.classes_ = np.array([i for i in range(2)])
+    model.classes_ = np.array([i for i in range(n_classes)])
 
     model.coef_ = np.zeros((n_classes, n_features))
     if model.fit_intercept:
@@ -64,9 +64,23 @@ def load_mnist() -> Dataset:
     x_test, y_test = X[60000:], y[60000:]
     return (x_train, y_train), (x_test, y_test)
 
+
+def shuffle(X: np.ndarray, y: np.ndarray) -> XY:
+    """Shuffle X and y."""
+    rng = np.random.default_rng()
+    idx = rng.permutation(len(X))
+    return X[idx], y[idx]
+
+
+def partition(X: np.ndarray, y: np.ndarray, num_partitions: int) -> XYList:
+    """Split X and y into a number of partitions."""
+    return list(
+        zip(np.array_split(X, num_partitions), np.array_split(y, num_partitions))
+    )
+
 def load_unsw() -> Dataset:
     """Load unsw dataset"""
-    unsw = pd.read_csv("UNSW_NB15_training-set.csv")
+    unsw = pd.read_csv("../datasets/UNSW_NB15_training-set.csv")
     y = unsw.iloc[:,-1:]
     #one-hot-encode parameters
     proto = pd.get_dummies(unsw['proto'])
@@ -84,17 +98,3 @@ def load_unsw() -> Dataset:
     X = unsw.iloc[:,:-2]
     x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
     return (x_train, y_train), (x_test, y_test)
-
-
-def shuffle(X: np.ndarray, y: np.ndarray) -> XY:
-    """Shuffle X and y."""
-    rng = np.random.default_rng()
-    idx = rng.permutation(len(X))
-    return X[idx], y[idx]
-
-
-def partition(X: np.ndarray, y: np.ndarray, num_partitions: int) -> XYList:
-    """Split X and y into a number of partitions."""
-    return list(
-        zip(np.array_split(X, num_partitions), np.array_split(y, num_partitions))
-    )

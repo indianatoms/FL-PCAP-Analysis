@@ -3,37 +3,23 @@ import flwr as fl
 import numpy as np
 
 from sklearn.linear_model import LogisticRegression
-from sklearn import tree
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import log_loss
 
-import flower.utils as utils
+import utils
 
 if __name__ == "__main__":
-    # Load UNSW
+    # Load MNIST dataset from https://www.openml.org/d/554
     (X_train, y_train), (X_test, y_test) = utils.load_unsw()
 
     # Split train set into 10 partitions and randomly use one for training.
-    partition_id = np.random.choice(10)
-    (X_train, y_train) = utils.partition(X_train, y_train, 10)[partition_id]
+    partition_id = np.random.choice(2)
+    (X_train, y_train) = utils.partition(X_train, y_train, 2)[partition_id]
 
     # Create LogisticRegression Model
     model = LogisticRegression(
-        C=1.0,
-        class_weight=None,
-        dual=False,
-        fit_intercept=True,
-        intercept_scaling=1,
-        l1_ratio=None,
-        max_iter=5000,
-        multi_class="multinomial",
-        n_jobs=None,
         penalty="l2",
-        random_state=123,
-        solver="newton-cg",
-        tol=0.0001,
-        verbose=0,
-        warm_start=False,
+        max_iter=2,  # local epoch
+        warm_start=True,  # prevent refreshing weights when fitting
     )
 
     # Setting initial parameters, akin to model.compile for keras models
@@ -41,12 +27,10 @@ if __name__ == "__main__":
 
     # Define Flower client
     class MnistClient(fl.client.NumPyClient):
-        # ONLY get_parameters, fit, evaluate and get_properties will be evaluated
         def get_parameters(self, config):  # type: ignore
             return utils.get_model_parameters(model)
 
         def fit(self, parameters, config):  # type: ignore
-            print("FITTING STARTED")
             utils.set_model_params(model, parameters)
             # Ignore convergence failure due to low local epochs
             with warnings.catch_warnings():
@@ -59,6 +43,7 @@ if __name__ == "__main__":
             utils.set_model_params(model, parameters)
             loss = log_loss(y_test, model.predict_proba(X_test))
             accuracy = model.score(X_test, y_test)
+            print("Current accuaracy: ", accuracy)
             return loss, len(X_test), {"accuracy": accuracy}
 
     # Start Flower client
