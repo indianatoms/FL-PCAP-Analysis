@@ -46,5 +46,8 @@ class Client:
                    l1_ratio=None, max_iter=100, multi_class='auto', n_jobs=None, penalty='l2', 
                    random_state=13, solver='lbfgs', tol=0.0001, verbose=0, warm_start=False).fit(x_train1,y_train1)
         y_hat = clf1.predict(x_test1)
-        accuracy_score(y_test1,y_hat)
-        return clf1.coef_, clf1.intercept_
+        return clf1.coef_, clf1.intercept_, accuracy_score(y_test1,y_hat), clf1
+
+    def test_model(self, clf,y_test,X_test):
+        y_hat = clf.predict(X_test)
+        return accuracy_score(y_test,y_hat)

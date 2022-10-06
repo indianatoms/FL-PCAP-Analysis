@@ -15,10 +15,11 @@ class User(db.Model):
 class RegresionParameters(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     new = db.Column(db.Boolean, unique=False, default=True)
-    intercept = db.Column(db.Integer ,nullable=False)
+    global_model = db.Column(db.Boolean, unique=False, default=False)
+    intercept = db.Column(db.Float ,nullable=False)
     bias = db.Column(db.PickleType)
     date_posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) #table name
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
     def __repr__(self):
-        return f"Reg Model('{self.id}','{self.intercept}')"
+        return f"Reg Model('{self.id}','{self.intercept}','{self.new}'),'{self.global_model}')"
