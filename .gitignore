@@ -1,2 +1,5 @@
 *.csv
 *checkpoint.ipynb
+**/__pycache__
+**/.envfile
+**/instance

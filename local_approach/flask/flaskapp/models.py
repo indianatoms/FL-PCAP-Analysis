@@ -1,11 +1,15 @@
 from datetime import datetime
+from email.policy import default
+from enum import unique
 from flaskapp import db
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    public_id = db.Column(db.String(50), unique=True)
     username = db.Column(db.String(20), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(60), nullable=False)
+    admin = db.Column(db.Boolean, default=False)
 
     regModel = db.relationship('RegresionParameters', backref='author', lazy=True) #class reference
 
