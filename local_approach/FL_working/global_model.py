@@ -28,7 +28,7 @@ class Global_model:
             self.model = clf
 
         else:
-            clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(40,25, 5), random_state=1)
+            clf = MLPClassifier(solver='adam', alpha=1e-5, hidden_layer_sizes=(40,25, 5), random_state=1)
             clf.intercepts_ = [np.zeros(40), np.zeros(25), np.zeros(5)]
             clf.coefs_ = [np.zeros((number_of_features,40)), np.zeros((40,25)), np.zeros((25,5)), np.zeros((5,1))]
             self.model = clf
