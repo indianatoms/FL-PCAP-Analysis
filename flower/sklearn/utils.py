@@ -80,7 +80,7 @@ def partition(X: np.ndarray, y: np.ndarray, num_partitions: int) -> XYList:
 
 def load_unsw() -> Dataset:
     """Load unsw dataset"""
-    unsw = pd.read_csv("../datasets/UNSW_NB15_training-set.csv")
+    unsw = pd.read_csv("../../datasets/UNSW_NB15_training-set.csv")
     y = unsw.iloc[:,-1:]
     #one-hot-encode parameters
     proto = pd.get_dummies(unsw['proto'])
