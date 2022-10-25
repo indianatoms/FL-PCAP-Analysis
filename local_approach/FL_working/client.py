@@ -1,9 +1,10 @@
 import pandas as pd
-from typing import Optional, Tuple
+from sklearn.preprocessing import StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.neural_network import MLPClassifier
-from sklearn.linear_model import LogisticRegression, SGDClassifier #try to use different tools
+from sklearn.linear_model import LogisticRegression, SGDClassifier, RidgeClassifier #try to use different tools
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score
 import numpy as np
@@ -30,62 +31,98 @@ class Client:
         dataset = pd.read_csv(path)
         return dataset
 
-    def preprocess_data(self, df: pd.DataFrame):
+    def clean_dataset(self, df: pd.DataFrame):
+        df.dropna(inplace=True)
+        indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
+        return df[indices_to_keep].astype(np.float64)
+
+    def preprocess_data(self, df: pd.DataFrame, ciids = False):
         """Preprocess and split data into X and y. Where X are features and y is the packet label. 
         String gata are One Hot encoded."""
 
-        list_drop = ['id','attack_cat']
-        df.drop(list_drop,axis=1,inplace=True)
-        df_numeric = df.select_dtypes(include=[np.number])
-
-        for feature in df_numeric.columns:
-            if df_numeric[feature].max()>10*df_numeric[feature].median() and df_numeric[feature].max()>10 :
-                df[feature] = np.where(df[feature]<df[feature].quantile(0.95), df[feature], df[feature].quantile(0.95))
-
-        df_numeric = df.select_dtypes(include=[np.number])
-
-        df_numeric = df.select_dtypes(include=[np.number])
-        df_before = df_numeric.copy()
-        for feature in df_numeric.columns:
-            if df_numeric[feature].nunique()>50:
-                if df_numeric[feature].min()==0:
-                    df[feature] = np.log(df[feature]+1)
-                else:
-                    df[feature] = np.log(df[feature])
-
-        df_numeric = df.select_dtypes(include=[np.number])
-        df_cat = df.select_dtypes(exclude=[np.number])
-
-        for feature in df_cat.columns:
-            if df_cat[feature].nunique()>6:
-                df[feature] = np.where(df[feature].isin(df[feature].value_counts().head().index), df[feature], f'{feature}_rest')
-
-        df_cat = df.select_dtypes(exclude=[np.number])
-
-        X = df.iloc[:,:-1]
-        y = df.iloc[:,-1]
-
-        ct = ColumnTransformer(transformers=[('encoder', OneHotEncoder(), [1,2,3])], remainder='passthrough')
-        feature_names = list(X.columns)
-        X = np.array(ct.fit_transform(X))
-
-        for label in list(df_cat['state'].value_counts().index)[::-1][1:]:
-            feature_names.insert(0,label)
+        if ciids == True:
+            df[" Label"] = df[" Label"].replace(['DoS slowloris', 'DoS Slowhttptest', 'DoS Hulk',
+            'DoS GoldenEye', 'Heartbleed'],1)
+            df[" Label"] = df[" Label"].replace(['BENIGN'],0)
+            df = self.clean_dataset(df)
+            X = df.iloc[:,:-1]
+            feature_names = list(X.columns)
+            X = X.to_numpy()
+            y = df.iloc[:,-1]
             
-        for label in list(df_cat['service'].value_counts().index)[::-1][1:]:
-            feature_names.insert(0,label)
-            
-        for label in list(df_cat['proto'].value_counts().index)[::-1][1:]:
-            feature_names.insert(0,label)
-        feature_names[5] = "service_not_determined"
+        else:
+            list_drop = ['id','attack_cat']
+            df.drop(list_drop,axis=1,inplace=True)
+            df_numeric = df.select_dtypes(include=[np.number])
+
+            for feature in df_numeric.columns:
+                if df_numeric[feature].max()>10*df_numeric[feature].median() and df_numeric[feature].max()>10 :
+                    df[feature] = np.where(df[feature]<df[feature].quantile(0.95), df[feature], df[feature].quantile(0.95))
+
+            df_numeric = df.select_dtypes(include=[np.number])
+
+            df_numeric = df.select_dtypes(include=[np.number])
+            df_before = df_numeric.copy()
+            for feature in df_numeric.columns:
+                if df_numeric[feature].nunique()>50:
+                    if df_numeric[feature].min()==0:
+                        df[feature] = np.log(df[feature]+1)
+                    else:
+                        df[feature] = np.log(df[feature])
+
+            df_numeric = df.select_dtypes(include=[np.number])
+            df_cat = df.select_dtypes(exclude=[np.number])
+
+            for feature in df_cat.columns:
+                if df_cat[feature].nunique()>6:
+                    df[feature] = np.where(df[feature].isin(df[feature].value_counts().head().index), df[feature], f'{feature}_rest')
+
+            df_cat = df.select_dtypes(exclude=[np.number])
+
+            X = df.iloc[:,:-1]
+            y = df.iloc[:,-1]
+
+            ct = ColumnTransformer(transformers=[('encoder', OneHotEncoder(), [1,2,3])], remainder='passthrough')
+            feature_names = list(X.columns)
+            X = np.array(ct.fit_transform(X))
+
+            for label in list(df_cat['state'].value_counts().index)[::-1][1:]:
+                feature_names.insert(0,label)
+                
+            for label in list(df_cat['service'].value_counts().index)[::-1][1:]:
+                feature_names.insert(0,label)
+                
+            for label in list(df_cat['proto'].value_counts().index)[::-1][1:]:
+                feature_names.insert(0,label)
+            feature_names[5] = "service_not_determined"
 
         self.x = X
         self.y = y
         self.feature_names = feature_names
 
+    def downsample_data(self, features):
+        df = pd.DataFrame(self.x, columns = self.feature_names)
+        self.x = df[features].to_numpy()
+        self.feature_names = features
+        
+
+
+    def init_empty_model(self,model_name, model):
+        if model_name == Supported_modles.SGD_classifier:
+            self.model = SGDClassifier(n_jobs=-1, random_state=12, loss="log", learning_rate='optimal', eta0=0.15, verbose=0)
+        if model_name == Supported_modles.MLP_classifier:
+            self.model = model
+            self.model.intercepts_ = [np.zeros(40), np.zeros(25), np.zeros(5), np.zeros(1)]
+            self.model.coefs_ = [np.zeros((57,40)), np.zeros((40,25)), np.zeros((25,5)), np.zeros((5,1))]
+
 
     def split_data(self):
         self.x, self.x_test, self.y, self.y_test = train_test_split(self.x, self.y, test_size=0.33, random_state=random.randint(0,10))
+    
+    def prep_data(self):
+        prep = StandardScaler() 
+        self.x = prep.fit_transform(self.x)
+        self.x_test = prep.transform(self.x_test)
 
     
     def train_model(self, model_name):
@@ -98,7 +135,11 @@ class Client:
         if model_name == Supported_modles.SGD_classifier:
             clf = SGDClassifier(random_state=32, loss="log", class_weight="balanced").fit(self.x,self.y)
         if model_name == Supported_modles.MLP_classifier:
-            clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(40,25, 5), random_state=1).fit(self.x, self.y)
+            clf = MLPClassifier(solver='adam', alpha=1e-5, hidden_layer_sizes=(40,25, 5)).fit(self.x, self.y)
+        if model_name == Supported_modles.rigde_classifier:
+            clf = RidgeClassifier().fit(self.x, self.y)
+        if model_name == Supported_modles.gradient_boosting_classifier:
+            clf = GradientBoostingClassifier(n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0).fit(self.x, self.y)
 
         y_hat = clf.predict(self.x_test)
 

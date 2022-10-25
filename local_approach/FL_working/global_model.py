@@ -1,6 +1,7 @@
-from sklearn.linear_model import LogisticRegression, SGDClassifier #try to use different tools
+from sklearn.linear_model import LogisticRegression, SGDClassifier, RidgeClassifier #try to use different tools
 import numpy as np
 from supported_modles import Supported_modles
+from sklearn.metrics import accuracy_score, f1_score
 from sklearn.neural_network import MLPClassifier
 
 
@@ -12,7 +13,7 @@ class Global_model:
         self.F1 = 0
         
 
-    def init_global_model(self, number_of_features, model_name):
+    def init_global_model(self, number_of_features, model_name, model):
         if model_name == Supported_modles.logistic_regression:
         # initialize global model
             clf = LogisticRegression(C=1.0, class_weight=None, dual=False, fit_intercept=True, intercept_scaling=1,
@@ -20,17 +21,24 @@ class Global_model:
                    random_state=13, solver='lbfgs', tol=0.0001, verbose=0, warm_start=False)
         if model_name == Supported_modles.SGD_classifier:
             clf = SGDClassifier(random_state=32, loss="log", class_weight="balanced")
+        if model_name == Supported_modles.rigde_classifier:
+            clf = RidgeClassifier()
 
         if model_name != Supported_modles.MLP_classifier:
             clf.intercept_ = np.zeros(1)
             clf.coef_ = np.zeros((1, number_of_features))
-            clf.classes_ = np.array([0, 1])
+            if model_name != Supported_modles.rigde_classifier:
+                clf.classes_ = np.array([0, 1])
             self.model = clf
 
         else:
-            clf = MLPClassifier(solver='adam', alpha=1e-5, hidden_layer_sizes=(40,25, 5), random_state=1)
-            clf.intercepts_ = [np.zeros(40), np.zeros(25), np.zeros(5)]
-            clf.coefs_ = [np.zeros((number_of_features,40)), np.zeros((40,25)), np.zeros((25,5)), np.zeros((5,1))]
+            clf = model
+            # clf = MLPClassifier(solver='adam', alpha=1e-5, hidden_layer_sizes=(40,25, 5), random_state=1)
+            # clf.intercepts_ = [np.zeros(40), np.zeros(25), np.zeros(5), np.zeros(1)]
+            # clf.coefs_ = [np.zeros((number_of_features,40)), np.zeros((40,25)), np.zeros((25,5)), np.zeros((5,1))]
+            # clf.n_layers_ = 5
+            # clf.out_activation_ = 'logistic'
+            # clf.n_outputs_ = 1
             self.model = clf
             
 
@@ -60,3 +68,7 @@ class Global_model:
             
             self.model.coefs_ = np.average(coefs, axis=0, weights=round_weights) # weight
             self.model.intercepts_ = np.average(intercept, axis=0, weights=round_weights) # weight
+        
+    def f1_score(self, x_test,y_test):
+        y_hat = self.model.predict(x_test)
+        return f1_score(y_test,y_hat)
