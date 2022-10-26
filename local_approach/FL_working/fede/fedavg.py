@@ -71,17 +71,25 @@ class Fedavg:
         s.bind((self.ip, self.port))
         s.listen(2)
         conn, addr = s.accept()
+        num = 0
+        clients = []
 
-        data = b""
         while True:
-            packet = conn.recv(4096)
-            if not packet: break
-            data += packet
-        
-        d = pickle.loads(data)
+            data = b""
+            while True:
+                packet = conn.recv(4096)
+                if not packet: break
+                data += packet
+            
+            d = pickle.loads(data)
+            clients.append(d)
+
+            num += 1
+            print (f'Data received from client{num}')
+            if num == number_of_clients:
+                 break
 
         # while True:
-        
         #     s.listen(2)
         #     conn, addr = s.accept()
         #     data= conn.recv(1024).decode("ascii") 
@@ -102,4 +110,4 @@ class Fedavg:
         #     if num == number_of_clients:
         #         break
 
-        return d
+        return clients
