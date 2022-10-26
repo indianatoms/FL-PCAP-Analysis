@@ -6,17 +6,17 @@ No.,Name,Type ,Description
 5,proto,nominal,Transaction protocol
 6,state,nominal,"Indicates to the state and its dependent protocol, e.g. ACC, CLO, CON, ECO, ECR, FIN, INT, MAS, PAR, REQ, RST, TST, TXD, URH, URN, and (-) (if not used state)"
 7,dur,Float,Record total duration
-8,sbytes,Integer,Source to destination transaction bytes 
-9,dbytes,Integer,Destination to source transaction bytes
-10,sttl,Integer,Source to destination time to live value 
-11,dttl,Integer,Destination to source time to live value
+8,sbytes,Integer,Source to destination transaction bytes  ++++
+9,dbytes,Integer,Destination to source transaction bytes  ++++
+10,sttl,Integer,Source to destination time to live value  ++++ 
+11,dttl,Integer,Destination to source time to live value  ++++
 12,sloss,Integer,Source packets retransmitted or dropped 
 13,dloss,Integer,Destination packets retransmitted or dropped
 14,service,nominal,"http, ftp, smtp, ssh, dns, ftp-data ,irc  and (-) if not much used service"
 15,Sload,Float,Source bits per second
 16,Dload,Float,Destination bits per second
-17,Spkts,integer,Source to destination packet count 
-18,Dpkts,integer,Destination to source packet count
+17,Spkts,integer,Source to destination packet count  ++++
+18,Dpkts,integer,Destination to source packet count  ++++
 19,swin,integer,Source TCP window advertisement value
 20,dwin,integer,Destination TCP window advertisement value
 21,stcpb,integer,Source TCP base sequence number

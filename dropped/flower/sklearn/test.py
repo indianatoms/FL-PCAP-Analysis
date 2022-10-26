@@ -1,4 +1,4 @@
-import flower.utils as utils
+import flower.sklearn.utils as utils
 
 if __name__ == "__main__":
     # Load UNSW

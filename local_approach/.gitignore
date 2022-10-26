@@ -1,2 +1,4 @@
 local_env
 __pycache__
+instance
+.ipynb_checkpoints
