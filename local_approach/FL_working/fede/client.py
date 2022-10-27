@@ -185,7 +185,7 @@ class Client:
         X_train, X_test, y_train, y_test = train_test_split(self.x, self.y, shuffle=True, train_size=batch_size, stratify=self.y, random_state=random.randint(0,10))
         dataset_size = X_train.shape[0]
         sample_weights = compute_sample_weight('balanced', y=y_train)
-        fed = Fed_Avg_Client("client1",X_train,y_train, dataset_size,sample_weights)
+        fed = Fed_Avg_Client("client1",X_train,y_train, dataset_size,sample_weights,self.model)
         return fed
 
     def send_data_to_server(self, data, host, port):

@@ -1,6 +1,8 @@
 import numpy as np 
 from sklearn.linear_model import LogisticRegression, SGDClassifier
-from sklearn.neural_network import MLPClassifier
+#from sklearn.neural_network import MLP_classifier
+import socket, pickle
+
 
 from fede.supported_modles import Supported_modles
 from fede.fed_transfer import Fed_Avg_Client
@@ -64,17 +66,16 @@ class Fedavg:
 
     
     def wait_for_data(self, number_of_clients):
-        import socket, pickle
-
         print("Server is Listening.....")
+        num = 0
+        clients = []
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.bind((self.ip, self.port))
         s.listen(2)
-        conn, addr = s.accept()
-        num = 0
-        clients = []
 
         while True:
+            conn, addr = s.accept()
+            
             data = b""
             while True:
                 packet = conn.recv(4096)
