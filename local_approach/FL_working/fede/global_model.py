@@ -5,16 +5,16 @@ from sklearn.linear_model import (
 )  # try to use different tools
 import numpy as np
 from supported_modles import Supported_modles
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import f1_score
 from sklearn.neural_network import MLPClassifier
 
 
-class Global_model:
+class GlobalModel:
     def __init__(self, name):
         self.name = name
         self.model = None
         self.accuracy = 0
-        self.F1 = 0
+        selff1 = 0
 
     def init_global_model(self, number_of_features, model_name, model):
         if model_name == Supported_modles.logistic_regression:

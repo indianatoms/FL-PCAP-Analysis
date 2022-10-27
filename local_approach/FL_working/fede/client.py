@@ -25,7 +25,7 @@ class Client:
         self.ip = ip
         self.model = None
         self.accuracy = 0
-        self.F1 = 0
+        selff1 = 0
         self.x = None
         self.y = None
         self.x_test = None
@@ -215,7 +215,7 @@ class Client:
 
         self.model = clf
         self.accuracy = accuracy_score(self.y_test, y_hat)
-        self.F1 = f1_score(self.y_test, y_hat)
+        selff1 = f1_score(self.y_test, y_hat)
 
     def test_model_accuracy(self, y_test=None, X_test=None):
         if self.model is None:
