@@ -1,19 +1,21 @@
 from fede.client import Client
 from sklearn.utils import shuffle
 
-#NODEs
+# NODEs
 def set_data(csids=False):
-    client1 = Client("node1","0.0.0.0")
+    client1 = Client("node1", "0.0.0.0")
 
     if csids:
-        dataset = client1.load_data("../../datasets/MachineLearningCSV/MachineLearningCVE/Wednesday-workingHours.pcap_ISCX.csv")
+        dataset = client1.load_data(
+            "../../datasets/MachineLearningCSV/MachineLearningCVE/Wednesday-workingHours.pcap_ISCX.csv"
+        )
     else:
         dataset = client1.load_data("../../datasets/UNSW_NB15_training-set.csv")
 
-    client2 = Client("node2","0.0.0.0")
-    client3 = Client("node3","0.0.0.0")
-    client4 = Client("node4","0.0.0.0")
-    client5 = Client("node5","0.0.0.0")
+    client2 = Client("node2", "0.0.0.0")
+    client3 = Client("node3", "0.0.0.0")
+    client4 = Client("node4", "0.0.0.0")
+    client5 = Client("node5", "0.0.0.0")
 
     dataset = shuffle(dataset)
 
@@ -26,7 +28,7 @@ def set_data(csids=False):
 
     if csids:
         client1.x = X[:100000]
-        client1.y = y[:100000]    
+        client1.y = y[:100000]
 
         client2.x = X[100000:200000]
         client2.y = y[100000:200000]
@@ -41,11 +43,11 @@ def set_data(csids=False):
         client5.y = y[400000:]
     else:
         client1.x = X[:20000]
-        client1.y = y[:20000]    
+        client1.y = y[:20000]
 
         client2.x = X[20000:40000]
         client2.y = y[20000:40000]
-        
+
         client3.x = X[40000:50000]
         client3.y = y[40000:50000]
 
@@ -62,8 +64,9 @@ def set_data(csids=False):
 
     return clients
 
+
 def centralized_data():
-    client1 = Client("node1","0.0.0.0")
+    client1 = Client("node1", "0.0.0.0")
     dataset = client1.load_data("../../datasets/UNSW_NB15_training-set.csv")
 
     dataset = shuffle(dataset)
