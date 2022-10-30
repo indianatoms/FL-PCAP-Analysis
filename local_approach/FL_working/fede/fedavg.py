@@ -4,27 +4,27 @@ from sklearn.linear_model import LogisticRegression, SGDClassifier
 # from sklearn.neural_network import MLP_classifier
 import socket, pickle
 
-
-from fede.supported_modles import Supported_modles
-from fede.fed_transfer import Fed_Avg_Client
-
+from supported_modles import Supported_modles
+import configparser
 
 class Fedavg:
-    def __init__(self, name):
+    def __init__(self, name, learning_rate):
         self.name = name
         self.model = None
+        self.learning_rate = learning_rate
         self.accuracy = 0
         self.ip = "localhost"
         self.port = 5001
+        self.clients = []
 
-    def init_global_model(self, learnig_rate, model_name, model, feature_numbers):
+    def init_global_model(self, model_name, model, feature_numbers):
         if model_name == Supported_modles.SGD_classifier:
             self.model = SGDClassifier(
                 n_jobs=-1,
                 random_state=12,
                 loss="log",
                 learning_rate="optimal",
-                eta0=learnig_rate,
+                eta0=self.learning_rate,
                 verbose=0,
             )  # global
             # initialize global model
@@ -34,6 +34,9 @@ class Fedavg:
         if model_name == Supported_modles.MLP_classifier:
             clf = model
             self.model = clf
+
+    def register_client(self, clients):
+        self.clients = clients
 
     def update_global_model(self, applicable_models, round_weights, model_name):
         # Average models parameters
@@ -128,3 +131,55 @@ class Fedavg:
         #         break
 
         return clients
+
+
+# Start Flower server for five rounds of federated learning
+if __name__ == "__main__":
+    fedavg = Fedavg("global", 0.05)
+    fedavg.init_global_model(Supported_modles.SGD_classifier, None,78)
+
+    selected_model = Supported_modles.SGD_classifier
+    number_of_rounds = 3
+    batch_size = 0.05
+    epochs = 10
+
+    data_file = 'server.conf'
+    config = configparser.ConfigParser()
+    config.read(data_file)
+    config['workers']['ip'].splitlines()
+    fedavg.register_client(config['workers']['ip'].splitlines())
+
+    print(fedavg.clients)
+    # prep = StandardScaler()
+
+
+
+    for _ in range(number_of_rounds):
+        print(f'Starting new round!')
+
+        # applicable_clients = random.sample((clients), random.randint(1, 4))
+        applicable_models = []
+        applicable_name = []
+        round_weights = []
+        dataset_size = 0
+
+        applicable_clients = fedavg.wait_for_data(3)
+        
+        # for client in applicable_clients:
+
+        #     print(f'Client name: {client.name}')
+            
+        #     fedavg.load_global_model(client.model, selected_model) #load global model on the client model
+
+        #     fedavg.train_local_agent(client.X_train, client.y_train, client.model, epochs, client.sample_weights, selected_model) #make partial fit on globsl model
+
+        #     round_weights.append(client.X_train.shape[0])
+        #     dataset_size += client.X_train.shape[0]
+        #     print(round_weights)
+        #     applicable_models.append(client.model)
+
+
+        # round_weights = np.array(round_weights) / dataset_size # calculate weight based on actual dataset size
+        # # round_weights = weights
+        # fedavg.update_global_model(applicable_models, round_weights, selected_model)
+        # print(fedavg.model.intercept_)
