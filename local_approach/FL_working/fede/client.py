@@ -1,3 +1,4 @@
+from time import sleep
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.compose import ColumnTransformer
@@ -14,23 +15,28 @@ from sklearn.metrics import accuracy_score, f1_score
 from sklearn.utils.class_weight import compute_sample_weight, compute_class_weight
 import numpy as np
 import random
-from fede.fed_transfer import Fed_Avg_Client
-from fede.supported_modles import Supported_modles
+from fed_transfer import Fed_Avg_Client
+from supported_modles import Supported_modles
 import socket, pickle
+
+import argparse
 
 
 class Client:
-    def __init__(self, name, ip):
+    def __init__(self, name, ip, port):
         self.name = name
         self.ip = ip
+        self.port = port
         self.model = None
         self.accuracy = 0
-        selff1 = 0
+        self.f1 = 0
         self.x = None
         self.y = None
         self.x_test = None
         self.y_test = None
         self.feature_names = None
+
+        print(f'Creating {self.name} on {self.ip}:{self.port}.')
 
     def load_data(self, path: str, csids=False) -> pd.DataFrame:
         """Load csv representation of pcap data, which have 44 feature and one label where 1 indicates malicious communicaiton and 0 benign."""
@@ -215,7 +221,7 @@ class Client:
 
         self.model = clf
         self.accuracy = accuracy_score(self.y_test, y_hat)
-        selff1 = f1_score(self.y_test, y_hat)
+        self.f1 = f1_score(self.y_test, y_hat)
 
     def test_model_accuracy(self, y_test=None, X_test=None):
         if self.model is None:
@@ -257,13 +263,67 @@ class Client:
 
     def send_data_to_server(self, data, host, port):
         # Create a socket connection.
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((host, port))
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind((self.ip, self.port))
+            s.connect((host, port))
 
-        # Create an instance of ProcessData() to send to server.
-        # Pickle the object and send it to the server
-        data_string = pickle.dumps(data)
-        s.send(data_string)
+            # Create an instance of ProcessData() to send to server.
+            # Pickle the object and send it to the server
+            data_string = pickle.dumps(data)
+            s.send(data_string)
 
-        s.close()
-        print("Data Sent to Server")
+            s.close()
+            print("Data Sent to Server")
+
+    def wait_for_data(self):
+        print('Waiting for connection')
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind((self.ip, self.port))
+            s.listen()
+            conn, addr = s.accept()
+            with conn:
+                print(f"Connected by {addr}")
+                data = b""
+                while True:
+                    packet = conn.recv(4096)
+                    if not packet:
+                        break
+                    data += packet
+        d = pickle.loads(data)
+        return d
+        
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Run client and get its ip and port.')
+    parser.add_argument('--name', dest='name' , type=str, help='client name')
+    parser.add_argument('--port', dest='port' , type=int, help='port on which socket will run')
+    parser.add_argument('--address', dest='address', type=str, help='ip on which socket will run')
+    parser.add_argument('--data', dest='data', type=str, help='ip on which socket will run')
+
+    args = parser.parse_args()
+
+    client = Client(args.name,args.address,args.port)
+    
+    d = client.wait_for_data()
+    print(d)
+    answer = input("(y)es or (n)o? ")
+
+    client.send_data_to_server(answer, 'localhost', 5001)
+
+    if answer == "y" or answer == "yes":
+        dataset1 = client.load_data('../../../datasets/MachineLearningCSV/MachineLearningCVE/' + args.data, True)
+        client.preprocess_data(dataset1, True)
+        client.split_data()
+        client.init_empty_model(Supported_modles.SGD_classifier)
+
+    client.wait_for_data()
+    number_of_rounds = 5
+    for _ in range(number_of_rounds):
+        data = client.fed_avg_send_data(0.2)
+        client.send_data_to_server(data,"localhost",5001)
+        sleep(5)
+
+    client.model = client.wait_for_data()
+    print(client.test_model_f1())
+    
