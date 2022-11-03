@@ -1,10 +1,11 @@
+from concurrent.futures import thread
 import numpy as np
 from time import sleep
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 import json
 
 # from sklearn.neural_network import MLP_classifier
-import socket, pickle, os, threading, hashlib
+import socket, pickle, os, threading, hashlib, sys
 
 from supported_modles import Supported_modles
 import configparser
@@ -21,6 +22,7 @@ class Fedavg:
         self.socket = socket.socket(family = socket.AF_INET, type = socket.SOCK_STREAM) 
         self.hashtable = None
         self.connections = []
+        self.clients = []
 
         try:
             self.socket.bind((self.ip, self.port))
@@ -132,17 +134,16 @@ class Fedavg:
 
     def wait_for_data(self,connection):
         print("Server is Listening...")
- 
         data = b""
         while True:
             packet = connection.recv(4096)
             if not packet:
                 break
             data += packet
-
+        print(sys.getsizeof(data))
         d = pickle.loads(data)
 
-        return d
+        self.clients.append(d)
 
     def read_adresses(self, filepath):
         config = configparser.ConfigParser()
@@ -174,7 +175,7 @@ if __name__ == "__main__":
     fedavg.init_global_model(Supported_modles.SGD_classifier, None,78)
 
     selected_model = Supported_modles.SGD_classifier
-    number_of_rounds = 1
+    number_of_rounds = 2
     batch_size = 0.05
     epochs = 10
 
@@ -199,18 +200,35 @@ if __name__ == "__main__":
     for _ in range(number_of_rounds):
 
         print(f'Starting new round!')
+        sleep(2)
 
         applicable_models = []
         applicable_name = []
         round_weights = []
         dataset_size = 0
 
-        
+        fedavg.clients = []
+        threads = []
         for c in fedavg.connections:
             print(f'Client name: {c[0]}')
 
-            client = fedavg.wait_for_data(c[1])
-            
+            client_handler = threading.Thread(
+                target=fedavg.wait_for_data,
+                args=(c[1],)  
+            )
+            threads.append(client_handler)
+
+        # Start all threads
+        for x in threads:
+            x.start()
+
+        # Wait for all of them to finish
+        for x in threads:
+            x.join()
+
+
+        for client in fedavg.clients:
+            print(client.name)
             fedavg.load_global_model(client.model, selected_model) #load global model on the client model
 
             fedavg.train_local_agent(client.X_train, client.y_train, client.model, epochs, client.sample_weights, selected_model) #make partial fit on globsl model
@@ -222,6 +240,7 @@ if __name__ == "__main__":
 
 
         round_weights = np.array(round_weights) / dataset_size # calculate weight based on actual dataset size
+        print(f'ROUNDS: {round_weights}')
         # round_weights = weights
         fedavg.update_global_model(applicable_models, round_weights, selected_model)
         print(fedavg.model.intercept_)

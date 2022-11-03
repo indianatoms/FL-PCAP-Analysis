@@ -18,15 +18,14 @@ import random
 from fed_transfer import Fed_Avg_Client
 from supported_modles import Supported_modles
 import socket, pickle
+import sys
 
 import argparse
 
 
 class Client:
-    def __init__(self, name, ip, port):
+    def __init__(self, name):
         self.name = name
-        self.ip = ip
-        self.port = port
         self.model = None
         self.accuracy = 0
         self.f1 = 0
@@ -37,7 +36,7 @@ class Client:
         self.feature_names = None
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        print(f'Creating {self.name} on {self.ip}:{self.port}.')
+        print(f'Creating {self.name}.')
 
     def load_data(self, path: str, csids=False) -> pd.DataFrame:
         """Load csv representation of pcap data, which have 44 feature and one label where 1 indicates malicious communicaiton and 0 benign."""
@@ -258,7 +257,7 @@ class Client:
         dataset_size = X_train.shape[0]
         sample_weights = compute_sample_weight("balanced", y=y_train)
         fed = Fed_Avg_Client(
-            "client1", X_train, y_train, dataset_size, sample_weights, self.model
+            self.name, X_train, y_train, dataset_size, sample_weights, self.model
         )
         return fed
 
@@ -307,13 +306,13 @@ class Client:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run client and get its ip and port.')
     parser.add_argument('--name', dest='name' , type=str, help='client name')
-    parser.add_argument('--port', dest='port' , type=int, help='port on which socket will run')
-    parser.add_argument('--address', dest='address', type=str, help='ip on which socket will run')
+    # parser.add_argument('--port', dest='port' , type=int, help='port on which socket will run')
+    # parser.add_argument('--address', dest='address', type=str, help='ip on which socket will run')
     parser.add_argument('--data', dest='data', type=str, help='ip on which socket will run')
 
     args = parser.parse_args()
 
-    client = Client(args.name,args.address,args.port)
+    client = Client(args.name)
 
     client.socket.connect(('127.0.0.1', 5001))
     if (client.login() == False):
@@ -335,13 +334,13 @@ if __name__ == "__main__":
     client.init_empty_model(Supported_modles.SGD_classifier)
 
     # client.wait_for_data()
-    number_of_rounds = 1
+    number_of_rounds = 2
     for _ in range(number_of_rounds):
         data = client.fed_avg_send_data(0.2)
+        
         client.send_data_to_server(data)
 
-    sleep(5)
-    client.model = client.wait_for_data()
+    # client.model = client.wait_for_data()
     # print(f'global model score: {client.test_model_f1()}')
     
     # client.train_model(Supported_modles.logistic_regression)
