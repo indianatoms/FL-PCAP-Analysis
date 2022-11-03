@@ -23,12 +23,7 @@ class Fedavg:
     def init_global_model(self, model_name, model, feature_numbers):
         if model_name == Supported_modles.SGD_classifier:
             self.model = SGDClassifier(
-                n_jobs=-1,
-                random_state=12,
-                loss="log",
-                learning_rate="optimal",
-                eta0=self.learning_rate,
-                verbose=0,
+               random_state=32, loss="log", class_weight="balanced"
             )  # global
             # initialize global model
             self.model.intercept_ = np.zeros(1)
@@ -134,6 +129,9 @@ class Fedavg:
             data_string = pickle.dumps(msg)
             s.send(data_string)
 
+            s.close()
+            print("Data Sent to Server")
+
 class ClientRefused(Exception):
     """Raised when one of the clinets does not agree to participate"""
     pass
@@ -145,58 +143,58 @@ if __name__ == "__main__":
     fedavg.init_global_model(Supported_modles.SGD_classifier, None,78)
 
     selected_model = Supported_modles.SGD_classifier
-    number_of_rounds = 5
+    number_of_rounds = 3
     batch_size = 0.05
     epochs = 10
     fedavg.read_adresses('server.conf')
 
     for c in fedavg.clients:
         print(c)
-        fedavg.send_request,(c,"Wanna connect?")
+        fedavg.send_request(c,"Wanna connect?")
 
-    # answers = fedavg.wait_for_data(len(fedavg.clients))
+    answers = fedavg.wait_for_data(len(fedavg.clients))
 
-    # print(answers) #we can also ask for password
+    print(answers) #we can also ask for password
 
-    # for a in answers: ##Take only the guys that agreed + not timed out
-    #     if a != 'yes' and a != 'y':
-    #         raise ClientRefused
+    for a in answers: ##Take only the guys that agreed + not timed out
+        if a != 'yes' and a != 'y':
+            raise ClientRefused
     
-    # sleep(5)
-    # for c in fedavg.clients:
-    #     fedavg.send_request(c,"Start sending!")
+    sleep(5)
+    for c in fedavg.clients:
+        fedavg.send_request(c,"Start sending!")
             
 
-    # for _ in range(number_of_rounds):
+    for _ in range(number_of_rounds):
 
-    #     print(f'Starting new round!')
+        print(f'Starting new round!')
 
-    #     applicable_clients = fedavg.wait_for_data(len(fedavg.clients))
+        applicable_clients = fedavg.wait_for_data(len(fedavg.clients))
 
-    #     applicable_models = []
-    #     applicable_name = []
-    #     round_weights = []
-    #     dataset_size = 0
+        applicable_models = []
+        applicable_name = []
+        round_weights = []
+        dataset_size = 0
 
         
-    #     for client in applicable_clients:
-    #         print(f'Client name: {client.name}')
+        for client in applicable_clients:
+            print(f'Client name: {client.name}')
             
-    #         fedavg.load_global_model(client.model, selected_model) #load global model on the client model
+            fedavg.load_global_model(client.model, selected_model) #load global model on the client model
 
-    #         fedavg.train_local_agent(client.X_train, client.y_train, client.model, epochs, client.sample_weights, selected_model) #make partial fit on globsl model
+            fedavg.train_local_agent(client.X_train, client.y_train, client.model, epochs, client.sample_weights, selected_model) #make partial fit on globsl model
 
-    #         round_weights.append(client.X_train.shape[0])
-    #         dataset_size += client.X_train.shape[0]
-    #         print(round_weights)
-    #         applicable_models.append(client.model)
+            round_weights.append(client.X_train.shape[0])
+            dataset_size += client.X_train.shape[0]
+            print(round_weights)
+            applicable_models.append(client.model)
 
 
-    #     round_weights = np.array(round_weights) / dataset_size # calculate weight based on actual dataset size
-    #     # round_weights = weights
-    #     fedavg.update_global_model(applicable_models, round_weights, selected_model)
-    #     print(fedavg.model.intercept_)
+        round_weights = np.array(round_weights) / dataset_size # calculate weight based on actual dataset size
+        # round_weights = weights
+        fedavg.update_global_model(applicable_models, round_weights, selected_model)
+        print(fedavg.model.intercept_)
 
-    # sleep(5)
-    # for c in fedavg.clients:
-    #     fedavg.send_request(c,fedavg.model)
+    sleep(5)
+    for c in fedavg.clients:
+        fedavg.send_request(c,fedavg.model)

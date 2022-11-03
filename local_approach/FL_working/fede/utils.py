@@ -11,11 +11,11 @@ def set_data(csids=False):
         client4 = Client("node4", "0.0.0.0",11111)
         client5 = Client("node5", "0.0.0.0",11111)
 
-        dataset1 = client1.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/new_pcapaa.csv', True)
-        dataset2 = client2.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/new_pcapab.csv', True)
-        dataset3 = client3.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/new_pcapac.csv', True)
-        dataset4 = client4.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/new_pcapad.csv', True)
-        dataset5 = client5.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/new_pcapae.csv', True)
+        dataset1 = client1.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedaa.csv', True)
+        dataset2 = client2.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedab.csv', True)
+        dataset3 = client3.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedac.csv', True)
+        dataset4 = client4.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedad.csv', True)
+        dataset5 = client5.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedae.csv', True)
 
         client1.preprocess_data(dataset1, True)
         client2.preprocess_data(dataset2, True)

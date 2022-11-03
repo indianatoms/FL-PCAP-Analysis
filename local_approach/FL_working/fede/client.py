@@ -264,7 +264,6 @@ class Client:
     def send_data_to_server(self, data, host, port):
         # Create a socket connection.
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((self.ip, self.port))
             s.connect((host, port))
 
             # Create an instance of ProcessData() to send to server.
@@ -318,7 +317,7 @@ if __name__ == "__main__":
         client.init_empty_model(Supported_modles.SGD_classifier)
 
     client.wait_for_data()
-    number_of_rounds = 5
+    number_of_rounds = 3
     for _ in range(number_of_rounds):
         data = client.fed_avg_send_data(0.2)
         client.send_data_to_server(data,"localhost",5001)
@@ -327,3 +326,5 @@ if __name__ == "__main__":
     client.model = client.wait_for_data()
     print(client.test_model_f1())
     
+    client.train_model(Supported_modles.SGD_classifier)
+    print(client.test_model_f1())
