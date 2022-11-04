@@ -18,15 +18,14 @@ import random
 from fed_transfer import Fed_Avg_Client
 from supported_modles import Supported_modles
 import socket, pickle
+import sys
 
 import argparse
 
 
 class Client:
-    def __init__(self, name, ip, port):
+    def __init__(self, name):
         self.name = name
-        self.ip = ip
-        self.port = port
         self.model = None
         self.accuracy = 0
         self.f1 = 0
@@ -35,8 +34,9 @@ class Client:
         self.x_test = None
         self.y_test = None
         self.feature_names = None
+        self.token = None
 
-        print(f'Creating {self.name} on {self.ip}:{self.port}.')
+        print(f'Creating {self.name}.')
 
     def load_data(self, path: str, csids=False) -> pd.DataFrame:
         """Load csv representation of pcap data, which have 44 feature and one label where 1 indicates malicious communicaiton and 0 benign."""
@@ -257,74 +257,88 @@ class Client:
         dataset_size = X_train.shape[0]
         sample_weights = compute_sample_weight("balanced", y=y_train)
         fed = Fed_Avg_Client(
-            "client1", X_train, y_train, dataset_size, sample_weights, self.model
+            self.name, X_train, y_train, dataset_size, sample_weights, self.model
         )
         return fed
 
-    def send_data_to_server(self, data, host, port):
-        # Create a socket connection.
+    def send_data_to_server(self, data):
+        if self.token == None:
+            print('Need to login first.')
+            return
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((host, port))
+            s.connect(("localhost", 5001))
 
             # Create an instance of ProcessData() to send to server.
             # Pickle the object and send it to the server
-            data_string = pickle.dumps(data)
+            data_string = pickle.dumps((self.token,data))
             s.send(data_string)
-
-            s.close()
             print("Data Sent to Server")
 
     def wait_for_data(self):
         print('Waiting for connection')
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((self.ip, self.port))
-            s.listen()
-            conn, addr = s.accept()
-            with conn:
-                print(f"Connected by {addr}")
-                data = b""
-                while True:
-                    packet = conn.recv(4096)
-                    if not packet:
-                        break
-                    data += packet
-        d = pickle.loads(data)
-        return d
+        # with conn:
+        #     print(f"Connected by {addr}")
+            s.connect(("localhost", 5001))
+            data = b""
+            while True:
+                packet = s.recv(4096)
+                if not packet:
+                    break
+                data += packet
+            d = pickle.loads(data)
+            return d
         
+    def login(self):
+        HOST = 'localhost'
+        PORT = 5001
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((HOST, PORT))
+            response = s.recv(2048)
+            # Input UserName
+            name = input(response.decode())	
+            s.send(str.encode(name))
+            response = s.recv(2048)
+            # Input Password
+            password = input(response.decode())	
+            s.send(str.encode(password))
+            ''' Response : Status of Connection :
+                1 : Registeration successful 
+                2 : Connection Successful
+                3 : Login Failed
+            '''
+            # Receive response 
+            response = s.recv(2048)
+            response = response.decode()
 
+            self.token = response
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run client and get its ip and port.')
     parser.add_argument('--name', dest='name' , type=str, help='client name')
-    parser.add_argument('--port', dest='port' , type=int, help='port on which socket will run')
-    parser.add_argument('--address', dest='address', type=str, help='ip on which socket will run')
+    # parser.add_argument('--port', dest='port' , type=int, help='port on which socket will run')
+    # parser.add_argument('--address', dest='address', type=str, help='ip on which socket will run')
     parser.add_argument('--data', dest='data', type=str, help='ip on which socket will run')
 
     args = parser.parse_args()
 
-    client = Client(args.name,args.address,args.port)
+    client = Client(args.name)
     
-    d = client.wait_for_data()
-    print(d)
-    answer = input("(y)es or (n)o? ")
+    dataset1 = client.load_data('../../../datasets/MachineLearningCSV/MachineLearningCVE/' + args.data, True)
+    client.preprocess_data(dataset1, True)
+    client.split_data()
+    client.init_empty_model(Supported_modles.SGD_classifier)
 
-    client.send_data_to_server(answer, 'localhost', 5001)
-
-    if answer == "y" or answer == "yes":
-        dataset1 = client.load_data('../../../datasets/MachineLearningCSV/MachineLearningCVE/' + args.data, True)
-        client.preprocess_data(dataset1, True)
-        client.split_data()
-        client.init_empty_model(Supported_modles.SGD_classifier)
-
-    client.wait_for_data()
-    number_of_rounds = 3
-    for _ in range(number_of_rounds):
-        data = client.fed_avg_send_data(0.2)
-        client.send_data_to_server(data,"localhost",5001)
-        sleep(5)
-
-    client.model = client.wait_for_data()
-    print(client.test_model_f1())
-    
-    client.train_model(Supported_modles.SGD_classifier)
-    print(client.test_model_f1())
+    while True:
+        cmd = input("stop, login, receive, score or send? ")
+        if cmd == 'stop':
+            break
+        if cmd == 'login':
+            client.login()
+        if cmd == 'send':
+            data = client.fed_avg_send_data(0.2)
+            client.send_data_to_server(data)
+        if cmd == 'receive':
+            client.model = client.wait_for_data()
+        if cmd == 'score':
+            print(client.test_model_f1())

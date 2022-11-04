@@ -1,11 +1,9 @@
+from concurrent.futures import thread
 import numpy as np
-from time import sleep
-from threading import Thread
 from sklearn.linear_model import LogisticRegression, SGDClassifier
-import timeout_decorator
 
 # from sklearn.neural_network import MLP_classifier
-import socket, pickle
+import socket, pickle, threading, hashlib, json, jwt, datetime, random
 
 from supported_modles import Supported_modles
 import configparser
@@ -16,9 +14,78 @@ class Fedavg:
         self.model = None
         self.learning_rate = learning_rate
         self.accuracy = 0
-        self.ip = "localhost"
+        self.ip = '127.0.0.1'
         self.port = 5001
         self.clients = []
+        self.hashtable = None
+        self.clients = []
+        self.secret = '5791628bb0b13ce0c676dfde280ba245'
+        self.socket = None
+
+
+        with open('ghost.json', 'r') as f:
+            self.hashtable = json.loads(f.read())
+
+        self.socket = socket.socket(family = socket.AF_INET, type = socket.SOCK_STREAM) 
+        host = '127.0.0.1'
+        port = 5001
+        ThreadCount = 0
+        try:
+            self.socket.bind((host, port))
+        except socket.error as e:
+            print(str(e))
+
+        print('Waitiing for a Connection..')
+        self.socket.listen(5)
+
+
+    def client_login(self, connection):
+            connection.send(str.encode('ENTER USERNAME : ')) # Request Username
+            name = connection.recv(2048)
+            connection.send(str.encode('ENTER PASSWORD : ')) # Request Password
+            password = connection.recv(2048)
+            password = password.decode()
+            name = name.decode()
+            password=hashlib.sha256(str.encode(password)).hexdigest() # Password hash using SHA256
+        # REGISTERATION PHASE   
+        # If new user,  regiter in Hashtable Dictionary  
+            if name not in self.hashtable:
+                self.hashtable[name]=password
+                connection.send(str.encode('Registeration Successful')) 
+                print('Registered : ',name)
+                print("{:<8} {:<20}".format('USER','PASSWORD'))
+                for k, v in self.hashtable.items():
+                    label, num = k,v
+                    print("{:<8} {:<20}".format(label, num))
+                print("-------------------------------------------")
+                connection.close()
+            else:
+        # If already existing user, check if the entered password is correct
+                if(self.hashtable[name] == password):
+                    token = jwt.encode(
+                    {
+                        "name": name,
+                        "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
+                    },
+                        self.secret
+                    )
+                    print('Connected : ',token)
+                    connection.send(token.encode())
+                    connection.close()
+                else:
+                    connection.send(str.encode('False')) # Response code for login failed
+                    print('Connection denied : ',name)
+                    connection.close()
+
+    def check_token(self, token):
+            try:
+                data = jwt.decode(token, self.secret, algorithms=['HS256'])
+                current_user = data['name']
+            except:
+                return False
+            print(current_user)
+            return True
+
 
     def init_global_model(self, model_name, model, feature_numbers):
         if model_name == Supported_modles.SGD_classifier:
@@ -81,37 +148,22 @@ class Fedavg:
             if model_name == Supported_modles.MLP_classifier:
                 model.partial_fit(X, y, classes=np.unique(y))
 
-    # @timeout_decorator.timeout(10)
-    def wait_for_data(self, number_of_clients):
-        print("Server is Listening...")
- 
-        num = 0
-        clients = []
+    def wait_for_data(self,connection):
+        print('Waitiing for a Connection...')
+        data = b""
+        while True:
+            packet = connection.recv(4096)
+            if not packet:
+                break
+            data += packet
+        d = pickle.loads(data)
 
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((self.ip, self.port))
-            s.listen(2)
+        token = d[0]
+        self.check_token(token)
+        struct = d[1]
 
-            while True:
-                conn, addr = s.accept()
-                print(f'Connected by {addr}')
-
-                data = b""
-                while True:
-                    packet = conn.recv(4096)
-                    if not packet:
-                        break
-                    data += packet
-
-                d = pickle.loads(data)
-                clients.append(d)
-
-                num += 1
-                print(f"Data received from client{num}")
-                if num == number_of_clients:
-                    break
-
-        return clients
+        self.clients.append(struct)
+        connection.close()
 
     def read_adresses(self, filepath):
         config = configparser.ConfigParser()
@@ -119,67 +171,80 @@ class Fedavg:
         config['workers']['ip'].splitlines()
         self.register_client(config['workers']['ip'].splitlines())
 
-    def send_request(self, client_address, msg):
-        x = client_address.split(":")
-        HOST = x[0]
-        PORT = int(x[1])
-        # Create a socket connection.
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((HOST, PORT))
-            data_string = pickle.dumps(msg)
-            s.send(data_string)
-
-            s.close()
-            print("Data Sent to Server")
+    def send_request(self, connection, msg):
+        print('Waitiing for a Connection...')
+        data_string = pickle.dumps(msg)
+        connection.send(data_string)
+        connection.close()
+        self.socket.close()
+        print("Data Sent to Server")
 
 class ClientRefused(Exception):
     """Raised when one of the clinets does not agree to participate"""
-    pass
-
 
 # Start Flower server for five rounds of federated learning
 if __name__ == "__main__":
+
+    NUMBER_OF_CLIENTS = 5
     fedavg = Fedavg("global", 0.05)
+    ThreadCount = 0
+    threads = []
+
+    while True:
+        Client, address = fedavg.socket.accept()
+        client_handler = threading.Thread(
+            target=fedavg.client_login,
+            args=(Client,)  
+        )
+        client_handler.start()
+        print('Connection Request: ' + str(ThreadCount))
+        threads.append(client_handler)
+        if len(threads) == NUMBER_OF_CLIENTS:
+            break
+
+    # Wait for all of them to finish
+    for x in threads:
+        x.join()
+    
     fedavg.init_global_model(Supported_modles.SGD_classifier, None,78)
 
     selected_model = Supported_modles.SGD_classifier
     number_of_rounds = 3
     batch_size = 0.05
     epochs = 10
-    fedavg.read_adresses('server.conf')
-
-    for c in fedavg.clients:
-        print(c)
-        fedavg.send_request(c,"Wanna connect?")
-
-    answers = fedavg.wait_for_data(len(fedavg.clients))
-
-    print(answers) #we can also ask for password
-
-    for a in answers: ##Take only the guys that agreed + not timed out
-        if a != 'yes' and a != 'y':
-            raise ClientRefused
-    
-    sleep(5)
-    for c in fedavg.clients:
-        fedavg.send_request(c,"Start sending!")
-            
 
     for _ in range(number_of_rounds):
 
         print(f'Starting new round!')
-
-        applicable_clients = fedavg.wait_for_data(len(fedavg.clients))
 
         applicable_models = []
         applicable_name = []
         round_weights = []
         dataset_size = 0
 
+        fedavg.clients = []
+        threads = []
         
+        while True:
+            Client, address = fedavg.socket.accept()
+            client_handler = threading.Thread(
+                target=fedavg.wait_for_data,
+                args=(Client,)  
+            )
+            client_handler.start()
+            threads.append(client_handler)
+            if len(threads) == NUMBER_OF_CLIENTS:
+                break
+
+        # Wait for all of them to finish
+        for x in threads:
+            x.join()
+        
+        applicable_clients = random.sample((fedavg.clients), random.randint(1, 4))
+
+
         for client in applicable_clients:
-            print(f'Client name: {client.name}')
-            
+            print(client.name)
             fedavg.load_global_model(client.model, selected_model) #load global model on the client model
 
             fedavg.train_local_agent(client.X_train, client.y_train, client.model, epochs, client.sample_weights, selected_model) #make partial fit on globsl model
@@ -191,10 +256,26 @@ if __name__ == "__main__":
 
 
         round_weights = np.array(round_weights) / dataset_size # calculate weight based on actual dataset size
+        print(f'ROUNDS: {round_weights}')
         # round_weights = weights
         fedavg.update_global_model(applicable_models, round_weights, selected_model)
         print(fedavg.model.intercept_)
 
-    sleep(5)
-    for c in fedavg.clients:
-        fedavg.send_request(c,fedavg.model)
+    input("Send final model to clients? ")
+
+    threads = []
+    while True:
+        Client, address = fedavg.socket.accept()
+        client_handler = threading.Thread(
+            target=fedavg.send_request,
+            args=(Client,fedavg.model)  
+        )
+        client_handler.start()
+        threads.append(client_handler)
+        if len(threads) == 5:
+            break
+    for x in threads:
+            x.join()
+
+    fedavg.socket.close()
+        
