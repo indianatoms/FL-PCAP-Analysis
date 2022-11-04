@@ -261,21 +261,22 @@ if __name__ == "__main__":
         fedavg.update_global_model(applicable_models, round_weights, selected_model)
         print(fedavg.model.intercept_)
 
-    input("Send final model to clients? ")
+    ans = input("Send final model to clients? ")
 
-    threads = []
-    while True:
-        Client, address = fedavg.socket.accept()
-        client_handler = threading.Thread(
-            target=fedavg.send_request,
-            args=(Client,fedavg.model)  
-        )
-        client_handler.start()
-        threads.append(client_handler)
-        if len(threads) == 5:
-            break
-    for x in threads:
-            x.join()
+    if ans == "yes" or ans == "y":
+        threads = []
+        while True:
+            Client, address = fedavg.socket.accept()
+            client_handler = threading.Thread(
+                target=fedavg.send_request,
+                args=(Client,fedavg.model)  
+            )
+            client_handler.start()
+            threads.append(client_handler)
+            if len(threads) == 5:
+                break
+        for x in threads:
+                x.join()
 
     fedavg.socket.close()
         
