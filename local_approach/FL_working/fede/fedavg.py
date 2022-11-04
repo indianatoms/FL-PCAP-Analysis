@@ -90,12 +90,7 @@ class Fedavg:
     def init_global_model(self, model_name, model, feature_numbers):
         if model_name == Supported_modles.SGD_classifier:
             self.model = SGDClassifier(
-                n_jobs=-1,
-                random_state=12,
-                loss="log",
-                learning_rate="optimal",
-                eta0=self.learning_rate,
-                verbose=0,
+               random_state=32, loss="log", class_weight="balanced"
             )  # global
             # initialize global model
             self.model.intercept_ = np.zeros(1)
@@ -181,6 +176,8 @@ class Fedavg:
         data_string = pickle.dumps(msg)
         connection.send(data_string)
         connection.close()
+        self.socket.close()
+        print("Data Sent to Server")
 
 class ClientRefused(Exception):
     """Raised when one of the clinets does not agree to participate"""
@@ -212,7 +209,7 @@ if __name__ == "__main__":
     fedavg.init_global_model(Supported_modles.SGD_classifier, None,78)
 
     selected_model = Supported_modles.SGD_classifier
-    number_of_rounds = 5
+    number_of_rounds = 3
     batch_size = 0.05
     epochs = 10
 
