@@ -1,14 +1,9 @@
 from concurrent.futures import thread
 import numpy as np
-from time import sleep
 from sklearn.linear_model import LogisticRegression, SGDClassifier
-import json
-import jwt
-import datetime
-
 
 # from sklearn.neural_network import MLP_classifier
-import socket, pickle, os, threading, hashlib, sys
+import socket, pickle, threading, hashlib, json, jwt, datetime, random
 
 from supported_modles import Supported_modles
 import configparser
@@ -25,10 +20,23 @@ class Fedavg:
         self.hashtable = None
         self.clients = []
         self.secret = '5791628bb0b13ce0c676dfde280ba245'
+        self.socket = None
 
 
-        with open('ghost.txt', 'r') as f:
+        with open('ghost.json', 'r') as f:
             self.hashtable = json.loads(f.read())
+
+        self.socket = socket.socket(family = socket.AF_INET, type = socket.SOCK_STREAM) 
+        host = '127.0.0.1'
+        port = 5001
+        ThreadCount = 0
+        try:
+            self.socket.bind((host, port))
+        except socket.error as e:
+            print(str(e))
+
+        print('Waitiing for a Connection..')
+        self.socket.listen(5)
 
 
     def client_login(self, connection):
@@ -180,25 +188,13 @@ class ClientRefused(Exception):
 # Start Flower server for five rounds of federated learning
 if __name__ == "__main__":
 
+    NUMBER_OF_CLIENTS = 5
     fedavg = Fedavg("global", 0.05)
-    threads = []
-
-    ServerSocket = socket.socket(family = socket.AF_INET, type = socket.SOCK_STREAM) 
-    host = '127.0.0.1'
-    port = 5001
     ThreadCount = 0
-    try:
-        ServerSocket.bind((host, port))
-    except socket.error as e:
-        print(str(e))
-
-    print('Waitiing for a Connection..')
-    ServerSocket.listen(5)
-
     threads = []
 
     while True:
-        Client, address = ServerSocket.accept()
+        Client, address = fedavg.socket.accept()
         client_handler = threading.Thread(
             target=fedavg.client_login,
             args=(Client,)  
@@ -206,7 +202,7 @@ if __name__ == "__main__":
         client_handler.start()
         print('Connection Request: ' + str(ThreadCount))
         threads.append(client_handler)
-        if len(threads) == 2:
+        if len(threads) == NUMBER_OF_CLIENTS:
             break
 
     # Wait for all of them to finish
@@ -216,14 +212,13 @@ if __name__ == "__main__":
     fedavg.init_global_model(Supported_modles.SGD_classifier, None,78)
 
     selected_model = Supported_modles.SGD_classifier
-    number_of_rounds = 2
+    number_of_rounds = 5
     batch_size = 0.05
     epochs = 10
 
     for _ in range(number_of_rounds):
 
         print(f'Starting new round!')
-        sleep(2)
 
         applicable_models = []
         applicable_name = []
@@ -234,24 +229,24 @@ if __name__ == "__main__":
         threads = []
         
         while True:
-            Client, address = ServerSocket.accept()
+            Client, address = fedavg.socket.accept()
             client_handler = threading.Thread(
                 target=fedavg.wait_for_data,
                 args=(Client,)  
             )
             client_handler.start()
             threads.append(client_handler)
-            if len(threads) == 2:
+            if len(threads) == NUMBER_OF_CLIENTS:
                 break
 
         # Wait for all of them to finish
         for x in threads:
             x.join()
         
-        print(fedavg.clients)
+        applicable_clients = random.sample((fedavg.clients), random.randint(1, 4))
 
 
-        for client in fedavg.clients:
+        for client in applicable_clients:
             print(client.name)
             fedavg.load_global_model(client.model, selected_model) #load global model on the client model
 
@@ -273,17 +268,17 @@ if __name__ == "__main__":
 
     threads = []
     while True:
-        Client, address = ServerSocket.accept()
+        Client, address = fedavg.socket.accept()
         client_handler = threading.Thread(
             target=fedavg.send_request,
             args=(Client,fedavg.model)  
         )
         client_handler.start()
         threads.append(client_handler)
-        if len(threads) == 2:
+        if len(threads) == 5:
             break
     for x in threads:
             x.join()
 
-    ServerSocket.close()
+    fedavg.socket.close()
         
