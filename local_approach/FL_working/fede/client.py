@@ -34,7 +34,7 @@ class Client:
         self.x_test = None
         self.y_test = None
         self.feature_names = None
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.token = None
 
         print(f'Creating {self.name}.')
 
@@ -262,46 +262,54 @@ class Client:
         return fed
 
     def send_data_to_server(self, data):
-        # Create an instance of ProcessData() to send to server.
-        # Pickle the object and send it to the server
-        data_string = pickle.dumps(data)
-        self.socket.send(data_string)
-        print("Data Sent to Server")
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect(("localhost", 5001))
+
+            # Create an instance of ProcessData() to send to server.
+            # Pickle the object and send it to the server
+            data_string = pickle.dumps(data)
+            s.send(data_string)
+
+            print("Data Sent to Server")
 
     def wait_for_data(self):
         print('Waiting for connection')
-        # conn, addr = self.socket.accept()
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         # with conn:
         #     print(f"Connected by {addr}")
-        data = b""
-        while True:
-            packet = self.socket.recv(4096)
-            if not packet:
-                break
-            data += packet
-        d = pickle.loads(data)
-        return d
+            s.connect(("localhost", 5001))
+            data = b""
+            while True:
+                packet = s.recv(4096)
+                if not packet:
+                    break
+                data += packet
+            d = pickle.loads(data)
+            return d
         
     def login(self):
-        response = self.socket.recv(2048)
-        # Input UserName
-        name = input(response.decode())	
-        self.socket.send(str.encode(name))
-        response = self.socket.recv(2048)
-        # Input Password
-        password = input(response.decode())	
-        self.socket.send(str.encode(password))
-        ''' Response : Status of Connection :
-            1 : Registeration successful 
-            2 : Connection Successful
-            3 : Login Failed
-        '''
-        # Receive response 
-        response = self.socket.recv(2048)
-        response = response.decode()
+        HOST = 'localhost'
+        PORT = 5001
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((HOST, PORT))
+            response = s.recv(2048)
+            # Input UserName
+            name = input(response.decode())	
+            s.send(str.encode(name))
+            response = s.recv(2048)
+            # Input Password
+            password = input(response.decode())	
+            s.send(str.encode(password))
+            ''' Response : Status of Connection :
+                1 : Registeration successful 
+                2 : Connection Successful
+                3 : Login Failed
+            '''
+            # Receive response 
+            response = s.recv(2048)
+            response = response.decode()
 
-        return eval(response)
-
+            self.token = response
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run client and get its ip and port.')
@@ -313,36 +321,23 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     client = Client(args.name)
-
-    client.socket.connect(('127.0.0.1', 5001))
-    if (client.login() == False):
-        print("Wrong")
-
-
-
     
-    # d = client.wait_for_data()
-    # print(d)
-    # answer = input("(y)es or (n)o? ")
-
-    # client.send_data_to_server(answer, 'localhost', 5001)
-
-    # if answer == "y" or answer == "yes":
     dataset1 = client.load_data('../../../datasets/MachineLearningCSV/MachineLearningCVE/' + args.data, True)
     client.preprocess_data(dataset1, True)
     client.split_data()
     client.init_empty_model(Supported_modles.SGD_classifier)
 
-    # client.wait_for_data()
-    number_of_rounds = 2
-    for _ in range(number_of_rounds):
-        data = client.fed_avg_send_data(0.2)
-        
-        client.send_data_to_server(data)
-
-    # client.model = client.wait_for_data()
-    # print(f'global model score: {client.test_model_f1()}')
-    
-    # client.train_model(Supported_modles.logistic_regression)
-    # print(f'Local model score: {client.test_model_f1()}')
-    
+    while True:
+        cmd = input("stop, login, receive, score or send? ")
+        if cmd == 'stop':
+            break
+        if cmd == 'login':
+            client.login()
+            print(client.token)
+        if cmd == 'send':
+            data = client.fed_avg_send_data(0.2)
+            client.send_data_to_server(data)
+        if cmd == 'receive':
+            client.model = client.wait_for_data()
+        if cmd == 'score':
+            print(client.test_model_f1())
