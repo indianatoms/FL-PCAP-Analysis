@@ -62,6 +62,7 @@ class Fedavg:
                         self.secret
                     )
                     print('Connected : ',token)
+                    connection.send(token.encode())
                     connection.close()
                 else:
                     connection.send(str.encode('False')) # Response code for login failed
@@ -69,10 +70,13 @@ class Fedavg:
                     connection.close()
 
     def check_token(self, token):
-            data = jwt.decode(token, self.secret, algorithms=['HS256'])
-            current_user = data['name']
-
-            return current_user
+            try:
+                data = jwt.decode(token, self.secret, algorithms=['HS256'])
+                current_user = data['name']
+            except:
+                return False
+            print(current_user)
+            return True
 
 
     def init_global_model(self, model_name, model, feature_numbers):
@@ -151,7 +155,11 @@ class Fedavg:
             data += packet
         d = pickle.loads(data)
 
-        self.clients.append(d)
+        token = d[0]
+        self.check_token(token)
+        struct = d[1]
+
+        self.clients.append(struct)
         connection.close()
 
     def read_adresses(self, filepath):
@@ -224,8 +232,6 @@ if __name__ == "__main__":
 
         fedavg.clients = []
         threads = []
-
-        print('Waitiing for a Connection..')
         
         while True:
             Client, address = ServerSocket.accept()
@@ -279,5 +285,5 @@ if __name__ == "__main__":
     for x in threads:
             x.join()
 
-    ServerSocket.socket.close()
+    ServerSocket.close()
         

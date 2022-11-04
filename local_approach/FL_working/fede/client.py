@@ -262,14 +262,16 @@ class Client:
         return fed
 
     def send_data_to_server(self, data):
+        if self.token == None:
+            print('Need to login first.')
+            return
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect(("localhost", 5001))
 
             # Create an instance of ProcessData() to send to server.
             # Pickle the object and send it to the server
-            data_string = pickle.dumps(data)
+            data_string = pickle.dumps((self.token,data))
             s.send(data_string)
-
             print("Data Sent to Server")
 
     def wait_for_data(self):
@@ -333,7 +335,6 @@ if __name__ == "__main__":
             break
         if cmd == 'login':
             client.login()
-            print(client.token)
         if cmd == 'send':
             data = client.fed_avg_send_data(0.2)
             client.send_data_to_server(data)
