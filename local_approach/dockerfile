@@ -1,0 +1,23 @@
+# Download base image ubuntu 20.04
+FROM ubuntu:22.04
+
+# LABEL about the custom image
+LABEL maintainer="s210215@dtu.dk"
+LABEL version="0.1"
+LABEL description="This is custom Docker Image for FL based communication"
+
+# Update Ubuntu Software repository
+RUN apt update
+
+# Install nginx, php-fpm and supervisord from ubuntu repository
+RUN apt install -y git python3 iproute2 python3-pip vim iputils-ping && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt clean
+
+COPY FL_working/fede fede 
+COPY FL_working/datasets datasets
+
+RUN pip install -r fede/requirements.txt
+
+# Expose Port for the Application 
+EXPOSE 5001
