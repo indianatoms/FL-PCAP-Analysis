@@ -3,13 +3,13 @@ from sklearn.utils import shuffle
 
 # NODEs
 def set_data(csids=False):
-    client1 = Client("node1", "0.0.0.0",11111)
+    client1 = Client("node1")
 
     if csids:
-        client2 = Client("node2", "0.0.0.0",11111)
-        client3 = Client("node3", "0.0.0.0",11111)
-        client4 = Client("node4", "0.0.0.0",11111)
-        client5 = Client("node5", "0.0.0.0",11111)
+        client2 = Client("node2")
+        client3 = Client("node3")
+        client4 = Client("node4")
+        client5 = Client("node5")
 
         dataset1 = client1.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedaa.csv', True)
         dataset2 = client2.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedab.csv', True)
@@ -33,10 +33,10 @@ def set_data(csids=False):
         
     else:
         dataset = client1.load_data("../../datasets/UNSW_NB15_training-set.csv")
-        client2 = Client("node2", "0.0.0.0",11111)
-        client3 = Client("node3", "0.0.0.0",11111)
-        client4 = Client("node4", "0.0.0.0",11111)
-        client5 = Client("node5", "0.0.0.0",11111)
+        client2 = Client("node2")
+        client3 = Client("node3")
+        client4 = Client("node4")
+        client5 = Client("node5")
 
         dataset = shuffle(dataset)
 

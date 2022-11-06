@@ -22,9 +22,11 @@ class Fedavg:
         self.secret = '5791628bb0b13ce0c676dfde280ba245'
         self.socket = None
 
-
-        with open('ghost.json', 'r') as f:
-            self.hashtable = json.loads(f.read())
+        try:
+            with open('ghost.json', 'r') as f:
+                self.hashtable = json.loads(f.read())
+        except FileNotFoundError:
+            self.hashtable = None
 
         self.socket = socket.socket(family = socket.AF_INET, type = socket.SOCK_STREAM) 
         host = '127.0.0.1'
@@ -90,7 +92,7 @@ class Fedavg:
     def init_global_model(self, model_name, model, feature_numbers):
         if model_name == Supported_modles.SGD_classifier:
             self.model = SGDClassifier(
-               random_state=32, loss="log", class_weight="balanced"
+               loss="hinge", class_weight="balanced", alpha=0.01
             )  # global
             # initialize global model
             self.model.intercept_ = np.zeros(1)

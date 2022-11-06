@@ -44,10 +44,29 @@ class Client:
         if csids:
             hdrs = " Destination Port, Flow Duration, Total Fwd Packets, Total Backward Packets,Total Length of Fwd Packets, Total Length of Bwd Packets, Fwd Packet Length Max, Fwd Packet Length Min, Fwd Packet Length Mean, Fwd Packet Length Std,Bwd Packet Length Max, Bwd Packet Length Min, Bwd Packet Length Mean, Bwd Packet Length Std,Flow Bytes/s, Flow Packets/s, Flow IAT Mean, Flow IAT Std, Flow IAT Max, Flow IAT Min,Fwd IAT Total, Fwd IAT Mean, Fwd IAT Std, Fwd IAT Max, Fwd IAT Min,Bwd IAT Total, Bwd IAT Mean, Bwd IAT Std, Bwd IAT Max, Bwd IAT Min,Fwd PSH Flags, Bwd PSH Flags, Fwd URG Flags, Bwd URG Flags, Fwd Header Length, Bwd Header Length,Fwd Packets/s, Bwd Packets/s, Min Packet Length, Max Packet Length, Packet Length Mean, Packet Length Std, Packet Length Variance,FIN Flag Count, SYN Flag Count, RST Flag Count, PSH Flag Count, ACK Flag Count, URG Flag Count, CWE Flag Count, ECE Flag Count, Down/Up Ratio, Average Packet Size, Avg Fwd Segment Size, Avg Bwd Segment Size, Fwd Header Length2,Fwd Avg Bytes/Bulk, Fwd Avg Packets/Bulk, Fwd Avg Bulk Rate, Bwd Avg Bytes/Bulk, Bwd Avg Packets/Bulk,Bwd Avg Bulk Rate,Subflow Fwd Packets, Subflow Fwd Bytes, Subflow Bwd Packets, Subflow Bwd Bytes,Init_Win_bytes_forward, Init_Win_bytes_backward, act_data_pkt_fwd, min_seg_size_forward,Active Mean, Active Std, Active Max, Active Min,Idle Mean, Idle Std, Idle Max, Idle Min, Label"
             columns = hdrs.split(",")
+            columns = [x.strip(' ') for x in columns]
             dataset = pd.read_csv(path, names=columns)
         else:
             dataset = pd.read_csv(path)
 
+        return dataset
+
+    def downsample(self, dataset):
+        df_class_0 = dataset[dataset['Label'] == 0]
+        df_class_1 = dataset[dataset['Label'] == 1]
+
+        count_class_0 = df_class_0.shape[0]
+        count_class_1 = df_class_1.shape[0]
+
+        if count_class_0/(count_class_0 + count_class_1) < 0.2:
+            print(f'DOWNSAMLING {self.name}')
+            df_class_1_under = df_class_1.sample(count_class_0)
+            dataset = pd.concat([df_class_1_under, df_class_0], axis=0)
+
+        if count_class_1/(count_class_0 + count_class_1) < 0.2:
+            print(f'DOWNSAMLING {self.name}')
+            df_class_0_under = df_class_0.sample(count_class_1)
+            dataset = pd.concat([df_class_0_under, df_class_1], axis=0)
         return dataset
 
     def clean_dataset(self, df: pd.DataFrame):
@@ -60,7 +79,7 @@ class Client:
         String gata are One Hot encoded."""
 
         if ciids == True:
-            df[" Label"] = df[" Label"].replace(
+            df["Label"] = df["Label"].replace(
                 [
                     "DoS slowloris",
                     "DoS Slowhttptest",
@@ -70,8 +89,9 @@ class Client:
                 ],
                 1,
             )
-            df[" Label"] = df[" Label"].replace(["BENIGN"], 0)
+            df["Label"] = df["Label"].replace(["BENIGN"], 0)
             df = self.clean_dataset(df)
+            df = self.downsample(df)
             X = df.iloc[:, :-1]
             feature_names = list(X.columns)
             X = X.to_numpy()
@@ -140,6 +160,7 @@ class Client:
         self.x = X
         self.y = y
         self.feature_names = feature_names
+        
 
     def downsample_data(self, features):
         df = pd.DataFrame(self.x, columns=self.feature_names)
@@ -150,11 +171,12 @@ class Client:
         if model_name == Supported_modles.SGD_classifier:
             self.model = SGDClassifier(
                 n_jobs=-1,
-                random_state=12,
-                loss="log",
+                loss="hinge",
                 learning_rate="optimal",
-                eta0=0.15,
+                eta0=0.05,
+                penalty = 'elasticnet',
                 verbose=0,
+                alpha=0.01
             )
         if model_name == Supported_modles.MLP_classifier:
             self.model = model
