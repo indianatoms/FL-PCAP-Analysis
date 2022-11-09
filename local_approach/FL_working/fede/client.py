@@ -86,6 +86,9 @@ class Client:
                     "DoS Hulk",
                     "DoS GoldenEye",
                     "Heartbleed",
+                    "DDoS",
+                    "Bot",
+                    "PortScan"
                 ],
                 1,
             )

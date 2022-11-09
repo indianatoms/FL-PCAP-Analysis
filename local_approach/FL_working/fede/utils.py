@@ -3,19 +3,27 @@ from sklearn.utils import shuffle
 
 # NODEs
 def set_data(csids=False):
-    client1 = Client("node1")
+    client1 = Client("node1","localhost",50001)
 
     if csids:
-        client2 = Client("node2")
-        client3 = Client("node3")
-        client4 = Client("node4")
-        client5 = Client("node5")
+        client2 = Client("node2","localhost",50001)
+        client3 = Client("node3","localhost",50001)
+        client4 = Client("node4","localhost",50001)
+        client5 = Client("node5","localhost",50001)
 
-        dataset1 = client1.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedaa.csv', True)
-        dataset2 = client2.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedab.csv', True)
-        dataset3 = client3.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedac.csv', True)
-        dataset4 = client4.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedad.csv', True)
-        dataset5 = client5.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedae.csv', True)
+    #Wednesdady dataset
+        dataset1 = client1.load_data('datasets/newWedaa.csv', True)
+        dataset2 = client2.load_data('datasets/newWedab.csv', True)
+        dataset3 = client3.load_data('datasets/newWedac.csv', True)
+        dataset4 = client4.load_data('datasets/newWedad.csv', True)
+        dataset5 = client5.load_data('datasets/newWedae.csv', True)
+
+    #Friday datdset
+        # dataset1 = client1.load_data("datasets/Friday-DDosaa.csv", True)
+        # dataset2 = client2.load_data('datasets/Friday-DDosab.csv', True)
+        # dataset3 = client3.load_data('datasets/Friday-Morning.csv', True)
+        # dataset4 = client4.load_data('datasets/Friday-PortScanaa.csv', True)
+        # dataset5 = client5.load_data('datasets/Friday-PortScanab.csv', True)
 
         client1.preprocess_data(dataset1, True)
         client2.preprocess_data(dataset2, True)
