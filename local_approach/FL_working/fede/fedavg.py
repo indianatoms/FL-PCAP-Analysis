@@ -1,13 +1,9 @@
 from concurrent.futures import thread
 import numpy as np
 from sklearn.linear_model import LogisticRegression, SGDClassifier
-
 # from sklearn.neural_network import MLP_classifier
 import socket, pickle, threading, hashlib, json, jwt, datetime, random
-
 from supported_modles import Supported_modles
-import configparser
-
 class Fedavg:
     def __init__(self, name, learning_rate):
         self.name = name
@@ -29,11 +25,9 @@ class Fedavg:
             self.hashtable = None
 
         self.socket = socket.socket(family = socket.AF_INET, type = socket.SOCK_STREAM) 
-        host = '127.0.0.1'
-        port = 5001
         ThreadCount = 0
         try:
-            self.socket.bind((host, port))
+            self.socket.bind((self.ip, self.port))
         except socket.error as e:
             print(str(e))
 
@@ -167,18 +161,11 @@ class Fedavg:
         self.clients.append(struct)
         connection.close()
 
-    def read_adresses(self, filepath):
-        config = configparser.ConfigParser()
-        config.read(filepath)
-        config['workers']['ip'].splitlines()
-        self.register_client(config['workers']['ip'].splitlines())
-
     def send_request(self, connection, msg):
         print('Waitiing for a Connection...')
         data_string = pickle.dumps(msg)
         connection.send(data_string)
         connection.close()
-        self.socket.close()
         print("Data Sent to Server")
 
 class ClientRefused(Exception):

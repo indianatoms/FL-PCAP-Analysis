@@ -24,7 +24,7 @@ import argparse
 
 
 class Client:
-    def __init__(self, name):
+    def __init__(self, name, server_address, server_port):
         self.name = name
         self.model = None
         self.accuracy = 0
@@ -35,6 +35,8 @@ class Client:
         self.y_test = None
         self.feature_names = None
         self.token = None
+        self.server_address = server_address
+        self.server_port = server_port
 
         print(f'Creating {self.name}.')
 
@@ -291,7 +293,7 @@ class Client:
             print('Need to login first.')
             return
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect(("localhost", 5001))
+            s.connect((self.server_address, self.server_port))
 
             # Create an instance of ProcessData() to send to server.
             # Pickle the object and send it to the server
@@ -304,7 +306,7 @@ class Client:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         # with conn:
         #     print(f"Connected by {addr}")
-            s.connect(("localhost", 5001))
+            s.connect((self.server_address, self.server_port))
             data = b""
             while True:
                 packet = s.recv(4096)
@@ -315,8 +317,8 @@ class Client:
             return d
         
     def login(self):
-        HOST = 'localhost'
-        PORT = 5001
+        HOST = self.server_address
+        PORT = self.server_port
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((HOST, PORT))
             response = s.recv(2048)
@@ -341,15 +343,15 @@ class Client:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run client and get its ip and port.')
     parser.add_argument('--name', dest='name' , type=str, help='client name')
-    # parser.add_argument('--port', dest='port' , type=int, help='port on which socket will run')
-    # parser.add_argument('--address', dest='address', type=str, help='ip on which socket will run')
+    parser.add_argument('--port', dest='port' , type=int, help='port on which socket will run')
+    parser.add_argument('--address', dest='address', type=str, help='ip on which socket will run')
     parser.add_argument('--data', dest='data', type=str, help='ip on which socket will run')
 
     args = parser.parse_args()
 
-    client = Client(args.name)
+    client = Client(args.name, args.address, args.port)
     
-    dataset1 = client.load_data('../../../datasets/MachineLearningCSV/MachineLearningCVE/' + args.data, True)
+    dataset1 = client.load_data(args.data, True)
     client.preprocess_data(dataset1, True)
     client.split_data()
     client.init_empty_model(Supported_modles.SGD_classifier)

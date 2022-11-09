@@ -1,0 +1,7 @@
+numpy
+sklearn
+configparser
+PyJWT
+datetime
+argparse
+pandas
