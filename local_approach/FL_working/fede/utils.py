@@ -12,18 +12,18 @@ def set_data(csids=False):
         client5 = Client("node5","localhost",50001)
 
     #Wednesdady dataset
-        dataset1 = client1.load_data('datasets/newWedaa.csv', True)
-        dataset2 = client2.load_data('datasets/newWedab.csv', True)
-        dataset3 = client3.load_data('datasets/newWedac.csv', True)
-        dataset4 = client4.load_data('datasets/newWedad.csv', True)
-        dataset5 = client5.load_data('datasets/newWedae.csv', True)
+        # dataset1 = client1.load_data('datasets/newWedaa.csv', True)
+        # dataset2 = client2.load_data('datasets/newWedab.csv', True)
+        # dataset3 = client3.load_data('datasets/newWedac.csv', True)
+        # dataset4 = client4.load_data('datasets/newWedad.csv', True)
+        # dataset5 = client5.load_data('datasets/newWedae.csv', True)
 
     #Friday datdset
-        # dataset1 = client1.load_data("datasets/Friday-DDosaa.csv", True)
-        # dataset2 = client2.load_data('datasets/Friday-DDosab.csv', True)
-        # dataset3 = client3.load_data('datasets/Friday-Morning.csv', True)
-        # dataset4 = client4.load_data('datasets/Friday-PortScanaa.csv', True)
-        # dataset5 = client5.load_data('datasets/Friday-PortScanab.csv', True)
+        dataset1 = client1.load_data("datasets/Friday-DDosaa.csv", True)
+        dataset2 = client2.load_data('datasets/Friday-DDosab.csv', True)
+        dataset3 = client3.load_data('datasets/Friday-Morning.csv', True)
+        dataset4 = client4.load_data('datasets/Friday-PortScanaa.csv', True)
+        dataset5 = client5.load_data('datasets/Friday-PortScanab.csv', True)
 
         client1.preprocess_data(dataset1, True)
         client2.preprocess_data(dataset2, True)
@@ -41,10 +41,10 @@ def set_data(csids=False):
         
     else:
         dataset = client1.load_data("../../datasets/UNSW_NB15_training-set.csv")
-        client2 = Client("node2")
-        client3 = Client("node3")
-        client4 = Client("node4")
-        client5 = Client("node5")
+        client2 = Client("node2","localhost",50001)
+        client3 = Client("node3","localhost",50001)
+        client4 = Client("node4","localhost",50001)
+        client5 = Client("node5","localhost",50001)
 
         dataset = shuffle(dataset)
 
