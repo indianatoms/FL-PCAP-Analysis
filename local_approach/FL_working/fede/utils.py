@@ -3,19 +3,28 @@ from sklearn.utils import shuffle
 
 # NODEs
 def set_data(csids=False):
-    client1 = Client("node1")
+    client1 = Client("node1","0.0.0.0", 5001)
 
     if csids:
-        client2 = Client("node2")
-        client3 = Client("node3")
-        client4 = Client("node4")
-        client5 = Client("node5")
+        client2 = Client("node2","0.0.0.0", 5001)
+        client3 = Client("node3","0.0.0.0", 5001)
+        client4 = Client("node4","0.0.0.0", 5001)
+        client5 = Client("node5","0.0.0.0", 5001)
 
-        dataset1 = client1.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedaa.csv', True)
-        dataset2 = client2.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedab.csv', True)
-        dataset3 = client3.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedac.csv', True)
-        dataset4 = client4.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedad.csv', True)
-        dataset5 = client5.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedae.csv', True)
+#wed
+        # dataset1 = client1.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedaa.csv', True)
+        # dataset2 = client2.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedab.csv', True)
+        # dataset3 = client3.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedac.csv', True)
+        # dataset4 = client4.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedad.csv', True)
+        # dataset5 = client5.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedae.csv', True)
+
+
+        dataset1 = client1.load_data('datasets/Friday-DDosaa.csv', True)
+        dataset2 = client2.load_data('datasets/Friday-DDosab.csv', True)
+        dataset3 = client3.load_data('datasets/Friday-Morning.csv', True)
+        dataset4 = client4.load_data('datasets/Friday-PortScanaa.csv', True)
+        dataset5 = client5.load_data('datasets/Friday-PortScanab.csv', True)
+
 
         client1.preprocess_data(dataset1, True)
         client2.preprocess_data(dataset2, True)
@@ -28,6 +37,13 @@ def set_data(csids=False):
         client3.split_data()
         client4.split_data()
         client5.split_data()
+
+        client1.prep_data()
+        client2.prep_data()
+        client3.prep_data()
+        client4.prep_data()
+        client5.prep_data()
+
         clients = [client1, client2, client3, client4, client5]
 
         

@@ -88,6 +88,9 @@ class Client:
                     "DoS Hulk",
                     "DoS GoldenEye",
                     "Heartbleed",
+                    "DDoS",
+                    "Bot",
+                    "PortScan"
                 ],
                 1,
             )
@@ -351,6 +354,7 @@ if __name__ == "__main__":
     dataset1 = client.load_data(args.data, True)
     client.preprocess_data(dataset1, True)
     client.split_data()
+    client.prep_data()
     client.init_empty_model(Supported_modles.SGD_classifier)
 
     while True:

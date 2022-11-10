@@ -265,7 +265,7 @@ if __name__ == "__main__":
             if len(threads) == 5:
                 break
         for x in threads:
-                x.join()
+            x.join()
 
     fedavg.socket.close()
         
