@@ -28,6 +28,13 @@ def set_data(csids=False):
         client3.split_data()
         client4.split_data()
         client5.split_data()
+
+        client1.prep_data()
+        client2.prep_data()
+        client3.prep_data()
+        client4.prep_data()
+        client5.prep_data()
+
         clients = [client1, client2, client3, client4, client5]
 
         
