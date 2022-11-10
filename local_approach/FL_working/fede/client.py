@@ -172,13 +172,13 @@ class Client:
         self.x = df[features].to_numpy()
         self.feature_names = features
 
+
     def init_empty_model(self, model_name, learning_rate, model=None):
         if model_name == Supported_modles.SGD_classifier:
             self.model = SGDClassifier(
-                n_jobs=-1,
                 loss="log",
                 learning_rate="optimal",
-                eta0=0.15,
+                eta0=0.1,
                 alpha=learning_rate
             )
         if model_name == Supported_modles.MLP_classifier:
@@ -196,7 +196,7 @@ class Client:
                 np.zeros((5, 1)),
             ]
         if model_name == Supported_modles.logistic_regression:
-             self.model = LogisticRegression(
+            self.model = LogisticRegression(
                 C=1.0,
                 class_weight=None,
                 dual=False,
@@ -213,6 +213,10 @@ class Client:
                 verbose=0,
                 warm_start=False,
             )
+        if model_name == Supported_modles.gradient_boosting_classifier:
+            self.model = GradientBoostingClassifier(
+                n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0
+            )
 
     def split_data(self):
         self.x, self.x_test, self.y, self.y_test = train_test_split(
@@ -222,18 +226,12 @@ class Client:
     def prep_data(self):
         prep = StandardScaler()
         self.x = prep.fit_transform(self.x)
-        self.x_test = prep.transform(self.x_test)
 
-    def train_model(self, model_name):
+    def train_model(self):
         """ Train model on passed data. Curentlyy only LogReg is used. Function returns intercept and bias
         which later is being averaged with other model"""
  
         self.model.fit(self.x, self.y)
-
-        y_hat = self.model.predict(self.x_test)
-
-        self.accuracy = accuracy_score(self.y_test, y_hat)
-        self.f1 = f1_score(self.y_test, y_hat)
 
     def test_model_accuracy(self, y_test=None, X_test=None):
         if self.model is None:
