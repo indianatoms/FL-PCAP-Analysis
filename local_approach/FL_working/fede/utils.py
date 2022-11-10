@@ -65,8 +65,9 @@ def set_data(csids=False):
         clients = [client1, client2, client3, client4, client5]
 
         client1.preprocess_data(dataset, csids)
-        client1.downsample_data(['sbytes','dbytes','sttl','dttl','spkts','dpkts'])
+        # client1.downsample_data(['sbytes','dbytes','sttl','dttl','spkts','dpkts'])
 
+        client1.prep_data()
 
         X = client1.x
         y = client1.y
@@ -88,9 +89,6 @@ def set_data(csids=False):
 
         test_x = X[60000:]
         test_y = y[60000:]
-
-        prep = StandardScaler()
-        test_x = prep.fit_transform(test_x)
 
         client2.feature_names = client1.feature_names
         client3.feature_names = client1.feature_names
