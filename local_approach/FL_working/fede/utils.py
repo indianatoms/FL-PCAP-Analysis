@@ -29,12 +29,6 @@ def set_data(csids=False):
         client4.split_data()
         client5.split_data()
 
-        client1.prep_data()
-        client2.prep_data()
-        client3.prep_data()
-        client4.prep_data()
-        client5.prep_data()
-
         clients = [client1, client2, client3, client4, client5]
 
         
@@ -69,6 +63,13 @@ def set_data(csids=False):
 
         client5.x = X[60000:]
         client5.y = y[60000:]
+
+        client1.prep_data()
+        client2.prep_data()
+        client3.prep_data()
+        client4.prep_data()
+        client5.prep_data()
+
 
         client2.feature_names = client1.feature_names
         client3.feature_names = client1.feature_names

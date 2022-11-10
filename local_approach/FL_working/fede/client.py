@@ -201,8 +201,7 @@ class Client:
     def prep_data(self):
         prep = StandardScaler()
         self.x = prep.fit_transform(self.x)
-        self.x_test = prep.transform(self.x_test)
-
+        
     def train_model(self, model_name):
         """ Train model on passed data. Curentlyy only LogReg is used. Function returns intercept and bias
         which later is being averaged with other model"""
@@ -226,7 +225,7 @@ class Client:
             ).fit(self.x, self.y)
         if model_name == Supported_modles.SGD_classifier:
             clf = SGDClassifier(
-                random_state=32, loss="log", class_weight="balanced"
+                random_state=32, loss="log", class_weight="balanced", alpha=0.0001
             ).fit(self.x, self.y)
         if model_name == Supported_modles.MLP_classifier:
             clf = MLPClassifier(
