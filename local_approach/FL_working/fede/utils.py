@@ -3,21 +3,39 @@ from sklearn.utils import shuffle
 from sklearn.preprocessing import StandardScaler
 
 # NODEs
-def set_data(csids=False, downsample=False):
-    client1 = Client("node1","localhost",50001)
+def set_data(csids=False):
+    client1 = Client("node1","0.0.0.0", 5001)
 
     if csids:
-        client2 = Client("node2","localhost",50001)
-        client3 = Client("node3","localhost",50001)
-        client4 = Client("node4","localhost",50001)
-        client5 = Client("node5","localhost",50001)
+        client2 = Client("node2","0.0.0.0", 5001)
+        client3 = Client("node3","0.0.0.0", 5001)
+        client4 = Client("node4","0.0.0.0", 5001)
+        client5 = Client("node5","0.0.0.0", 5001)
 
-    #Wednesdady dataset
-        dataset = client1.load_data('datasets/Wednesday-workingHours.pcap_ISCX.csv', True)
+#wed
+        # dataset1 = client1.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedaa.csv', True)
+        # dataset2 = client2.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedab.csv', True)
+        # dataset3 = client3.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedac.csv', True)
+        # dataset4 = client4.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedad.csv', True)
+        # dataset5 = client5.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedae.csv', True)
 
-        # dataset = client1.load_data('datasets/Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv', True)
+
+        # dataset1 = client1.load_data('datasets/Friday-DDosaa.csv', True)
+        # dataset2 = client2.load_data('datasets/Friday-DDosab.csv', True)
+        # dataset3 = client3.load_data('datasets/Friday-Morning.csv', True)
+        # dataset4 = client4.load_data('datasets/Friday-PortScanaa.csv', True)
+        # dataset5 = client5.load_data('datasets/Friday-PortScanab.csv', True)
+
+
+        dataset = client1.load_data('datasets/Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv', True)
 
         dataset = shuffle(dataset)
+
+        client1.prep_data()
+        client2.prep_data()
+        client3.prep_data()
+        client4.prep_data()
+        client5.prep_data()
 
         clients = [client1, client2, client3, client4, client5]
 
