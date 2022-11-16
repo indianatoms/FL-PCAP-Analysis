@@ -172,16 +172,14 @@ class Client:
         self.x = df[features].to_numpy()
         self.feature_names = features
 
-    def init_empty_model(self, model_name, model=None):
+
+    def init_empty_model(self, model_name, learning_rate, model=None):
         if model_name == Supported_modles.SGD_classifier:
             self.model = SGDClassifier(
-                n_jobs=-1,
-                loss="hinge",
+                loss="log",
                 learning_rate="optimal",
-                eta0=0.05,
-                penalty = 'elasticnet',
-                verbose=0,
-                alpha=0.01
+                eta0=0.1,
+                alpha=learning_rate
             )
         if model_name == Supported_modles.MLP_classifier:
             self.model = model
@@ -197,22 +195,8 @@ class Client:
                 np.zeros((25, 5)),
                 np.zeros((5, 1)),
             ]
-
-    def split_data(self):
-        self.x, self.x_test, self.y, self.y_test = train_test_split(
-            self.x, self.y, test_size=0.33, random_state=random.randint(0, 10)
-        )
-
-    def prep_data(self):
-        prep = StandardScaler()
-        self.x = prep.fit_transform(self.x)
-        self.x_test = prep.transform(self.x_test)
-
-    def train_model(self, model_name):
-        """ Train model on passed data. Curentlyy only LogReg is used. Function returns intercept and bias
-        which later is being averaged with other model"""
         if model_name == Supported_modles.logistic_regression:
-            clf = LogisticRegression(
+            self.model = LogisticRegression(
                 C=1.0,
                 class_weight=None,
                 dual=False,
@@ -228,27 +212,26 @@ class Client:
                 tol=0.0001,
                 verbose=0,
                 warm_start=False,
-            ).fit(self.x, self.y)
-        if model_name == Supported_modles.SGD_classifier:
-            clf = SGDClassifier(
-                random_state=32, loss="log", class_weight="balanced"
-            ).fit(self.x, self.y)
-        if model_name == Supported_modles.MLP_classifier:
-            clf = MLPClassifier(
-                solver="adam", alpha=1e-5, hidden_layer_sizes=(40, 25, 5)
-            ).fit(self.x, self.y)
-        if model_name == Supported_modles.rigde_classifier:
-            clf = RidgeClassifier().fit(self.x, self.y)
+            )
         if model_name == Supported_modles.gradient_boosting_classifier:
-            clf = GradientBoostingClassifier(
+            self.model = GradientBoostingClassifier(
                 n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0
-            ).fit(self.x, self.y)
+            )
 
-        y_hat = clf.predict(self.x_test)
+    def split_data(self):
+        self.x, self.x_test, self.y, self.y_test = train_test_split(
+            self.x, self.y, test_size=0.33, random_state=random.randint(0, 10)
+        )
 
-        self.model = clf
-        self.accuracy = accuracy_score(self.y_test, y_hat)
-        self.f1 = f1_score(self.y_test, y_hat)
+    def prep_data(self):
+        prep = StandardScaler()
+        self.x = prep.fit_transform(self.x)
+
+    def train_model(self):
+        """ Train model on passed data. Curentlyy only LogReg is used. Function returns intercept and bias
+        which later is being averaged with other model"""
+ 
+        self.model.fit(self.x, self.y)
 
     def train_local_agent(self, X, y, epochs, class_weight, model_name):
         for _ in range(0, epochs):

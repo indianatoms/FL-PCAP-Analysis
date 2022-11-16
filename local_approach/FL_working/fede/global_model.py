@@ -14,9 +14,9 @@ class GlobalModel:
         self.name = name
         self.model = None
         self.accuracy = 0
-        selff1 = 0
+        self.f1 = 0
 
-    def init_global_model(self, number_of_features, model_name, model):
+    def init_global_model(self, model_name, feature_numbers):
         if model_name == Supported_modles.logistic_regression:
             # initialize global model
             clf = LogisticRegression(
@@ -36,27 +36,15 @@ class GlobalModel:
                 verbose=0,
                 warm_start=False,
             )
+            clf.intercept_ = np.zeros(1)
+            clf.coef_ = np.zeros((1, feature_numbers))
+            clf.classes_ = np.array([0, 1])
         if model_name == Supported_modles.SGD_classifier:
             clf = SGDClassifier(random_state=32, loss="log", class_weight="balanced")
-        if model_name == Supported_modles.rigde_classifier:
-            clf = RidgeClassifier()
-
-        if model_name != Supported_modles.MLP_classifier:
             clf.intercept_ = np.zeros(1)
-            clf.coef_ = np.zeros((1, number_of_features))
-            if model_name != Supported_modles.rigde_classifier:
-                clf.classes_ = np.array([0, 1])
-            self.model = clf
-
-        else:
-            clf = model
-            # clf = MLPClassifier(solver='adam', alpha=1e-5, hidden_layer_sizes=(40,25, 5), random_state=1)
-            # clf.intercepts_ = [np.zeros(40), np.zeros(25), np.zeros(5), np.zeros(1)]
-            # clf.coefs_ = [np.zeros((number_of_features,40)), np.zeros((40,25)), np.zeros((25,5)), np.zeros((5,1))]
-            # clf.n_layers_ = 5
-            # clf.out_activation_ = 'logistic'
-            # clf.n_outputs_ = 1
-            self.model = clf
+            clf.coef_ = np.zeros((1, feature_numbers))
+            clf.classes_ = np.array([0, 1])
+        self.model = clf
 
     # update each agent model by current global model values
     def load_global_model(self, model):

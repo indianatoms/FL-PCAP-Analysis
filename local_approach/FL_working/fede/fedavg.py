@@ -86,7 +86,10 @@ class Fedavg:
     def init_global_model(self, model_name, model, feature_numbers):
         if model_name == Supported_modles.SGD_classifier:
             self.model = SGDClassifier(
-               loss="hinge", class_weight="balanced", alpha=0.01
+                loss="log",
+                learning_rate="optimal",
+                eta0=0.1,
+                alpha=self.learning_rate
             )  # global
             # initialize global model
             self.model.intercept_ = np.zeros(1)
