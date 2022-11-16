@@ -174,7 +174,7 @@ class ClientRefused(Exception):
 # Start Flower server for five rounds of federated learning
 if __name__ == "__main__":
 
-    NUMBER_OF_CLIENTS = 5
+    NUMBER_OF_CLIENTS = 2
     fedavg = Fedavg("global", 0.05)
     ThreadCount = 0
     threads = []
@@ -210,7 +210,6 @@ if __name__ == "__main__":
         applicable_name = []
         round_weights = []
         dataset_size = 0
-
         fedavg.clients = []
         threads = []
         
@@ -229,17 +228,13 @@ if __name__ == "__main__":
         for x in threads:
             x.join()
         
-        applicable_clients = random.sample((fedavg.clients), random.randint(1, 4))
+        applicable_clients = random.sample((fedavg.clients), random.randint(1, 2))
 
 
         for client in applicable_clients:
             print(client.name)
-            fedavg.load_global_model(client.model, selected_model) #load global model on the client model
-
-            fedavg.train_local_agent(client.X_train, client.y_train, client.model, epochs, client.sample_weights, selected_model) #make partial fit on globsl model
-
-            round_weights.append(client.X_train.shape[0])
-            dataset_size += client.X_train.shape[0]
+            round_weights.append(client.dataset_size)
+            dataset_size += client.dataset_size
             print(round_weights)
             applicable_models.append(client.model)
 
@@ -250,22 +245,22 @@ if __name__ == "__main__":
         fedavg.update_global_model(applicable_models, round_weights, selected_model)
         print(fedavg.model.intercept_)
 
-    ans = input("Send final model to clients? ")
+        ans = input("Send model to clients? ")
 
-    if ans == "yes" or ans == "y":
-        threads = []
-        while True:
-            Client, address = fedavg.socket.accept()
-            client_handler = threading.Thread(
-                target=fedavg.send_request,
-                args=(Client,fedavg.model)  
-            )
-            client_handler.start()
-            threads.append(client_handler)
-            if len(threads) == 5:
-                break
-        for x in threads:
-            x.join()
+        if ans == "yes" or ans == "y":
+            threads = []
+            while True:
+                Client, address = fedavg.socket.accept()
+                client_handler = threading.Thread(
+                    target=fedavg.send_request,
+                    args=(Client,fedavg.model)  
+                )
+                client_handler.start()
+                threads.append(client_handler)
+                if len(threads) == NUMBER_OF_CLIENTS:
+                    break
+            for x in threads:
+                    x.join()
 
     fedavg.socket.close()
         
