@@ -3,7 +3,7 @@ from sklearn.utils import shuffle
 from sklearn.preprocessing import StandardScaler
 
 # NODEs
-def set_data(csids=False):
+def set_data(csids=False, downsample=False):
     client1 = Client("node1","localhost",50001)
 
     if csids:
@@ -14,6 +14,8 @@ def set_data(csids=False):
 
     #Wednesdady dataset
         dataset = client1.load_data('datasets/Wednesday-workingHours.pcap_ISCX.csv', True)
+
+        # dataset = client1.load_data('datasets/Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv', True)
 
         dataset = shuffle(dataset)
 
@@ -26,6 +28,20 @@ def set_data(csids=False):
         X = client1.x
         y = client1.y
 
+        client1.x = X[:100000]
+        client1.y = y[:100000]
+
+        client2.x = X[100000:200000]
+        client2.y = y[100000:200000]
+
+        client3.x = X[200000:300000]
+        client3.y = y[200000:300000]
+
+        client4.x = X[300000:400000]
+        client4.y = y[300000:400000]
+
+        client5.x = X[400000:600000]
+        client5.y = y[400000:600000]
 
         client1.x = X[:100000]
         client1.y = y[:100000]
@@ -44,6 +60,24 @@ def set_data(csids=False):
 
         test_x = X[600000:]
         test_y = y[600000:]
+
+        # client1.x = X[:33000]
+        # client1.y = y[:33000]
+
+        # client2.x = X[33000:66000]
+        # client2.y = y[33000:66000]
+
+        # client3.x = X[66000:99000]
+        # client3.y = y[66000:99000]
+
+        # client4.x = X[99000:133000]
+        # client4.y = y[99000:133000]
+
+        # client5.x = X[133000:166000]
+        # client5.y = y[133000:166000]
+
+        # test_x = X[166000:]
+        # test_y = y[166000:]
 
         client2.feature_names = client1.feature_names
         client3.feature_names = client1.feature_names
@@ -65,9 +99,10 @@ def set_data(csids=False):
         clients = [client1, client2, client3, client4, client5]
 
         client1.preprocess_data(dataset, csids)
-        # client1.downsample_data(['sbytes','dbytes','sttl','dttl','spkts','dpkts'])
+        if downsample:
+            client1.downsample_data(['sbytes','dbytes','sttl','dttl','spkts','dpkts'])
 
-        client1.prep_data()
+        # client1.prep_data()
 
         X = client1.x
         y = client1.y
