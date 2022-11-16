@@ -24,7 +24,7 @@ import argparse
 
 
 class Client:
-    def __init__(self, name):
+    def __init__(self, name, server_address, server_port):
         self.name = name
         self.model = None
         self.accuracy = 0
@@ -35,6 +35,8 @@ class Client:
         self.y_test = None
         self.feature_names = None
         self.token = None
+        self.server_address = server_address
+        self.server_port = server_port
 
         print(f'Creating {self.name}.')
 
@@ -86,6 +88,9 @@ class Client:
                     "DoS Hulk",
                     "DoS GoldenEye",
                     "Heartbleed",
+                    "DDoS",
+                    "Bot",
+                    "PortScan"
                 ],
                 1,
             )
@@ -245,6 +250,15 @@ class Client:
         self.accuracy = accuracy_score(self.y_test, y_hat)
         self.f1 = f1_score(self.y_test, y_hat)
 
+    def train_local_agent(self, X, y, epochs, class_weight, model_name):
+        for _ in range(0, epochs):
+            if model_name == Supported_modles.SGD_classifier:
+                self.model.partial_fit(
+                    X, y, classes=np.unique(y), sample_weight=class_weight
+                )
+            if model_name == Supported_modles.MLP_classifier:
+                self.model.partial_fit(X, y, classes=np.unique(y))
+
     def test_model_accuracy(self, y_test=None, X_test=None):
         if self.model is None:
             print("Model not trined yet.")
@@ -267,7 +281,15 @@ class Client:
             y_hat = self.model.predict(X_test)
             return f1_score(y_test, y_hat)
 
-    def fed_avg_send_data(self, batch_size):
+    def load_global_model(self, model, model_name):
+        if model_name == Supported_modles.SGD_classifier:
+            model.intercept_ = self.model.intercept_.copy()
+            model.coef_ = self.model.coef_.copy()
+        if model_name == Supported_modles.MLP_classifier:
+            model.intercepts_ = self.model.intercepts_.copy()
+            model.coefs_ = self.model.coefs_.copy()
+
+    def fed_avg_prepare_data(self, batch_size, epochs,model_name):
         X_train, X_test, y_train, y_test = train_test_split(
             self.x,
             self.y,
@@ -276,10 +298,14 @@ class Client:
             stratify=self.y,
             random_state=random.randint(0, 10),
         )
+        
         dataset_size = X_train.shape[0]
         sample_weights = compute_sample_weight("balanced", y=y_train)
+
+        self.train_local_agent(X_train,y_train,epochs,sample_weights,model_name)
+
         fed = Fed_Avg_Client(
-            self.name, X_train, y_train, dataset_size, sample_weights, self.model
+            self.name, dataset_size, self.model
         )
         return fed
 
@@ -288,7 +314,7 @@ class Client:
             print('Need to login first.')
             return
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect(("localhost", 5001))
+            s.connect((self.server_address, self.server_port))
 
             # Create an instance of ProcessData() to send to server.
             # Pickle the object and send it to the server
@@ -301,7 +327,7 @@ class Client:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         # with conn:
         #     print(f"Connected by {addr}")
-            s.connect(("localhost", 5001))
+            s.connect((self.server_address, self.server_port))
             data = b""
             while True:
                 packet = s.recv(4096)
@@ -312,8 +338,8 @@ class Client:
             return d
         
     def login(self):
-        HOST = 'localhost'
-        PORT = 5001
+        HOST = self.server_address
+        PORT = self.server_port
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((HOST, PORT))
             response = s.recv(2048)
@@ -338,29 +364,31 @@ class Client:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run client and get its ip and port.')
     parser.add_argument('--name', dest='name' , type=str, help='client name')
-    # parser.add_argument('--port', dest='port' , type=int, help='port on which socket will run')
-    # parser.add_argument('--address', dest='address', type=str, help='ip on which socket will run')
+    parser.add_argument('--port', dest='port' , type=int, help='port on which socket will run')
+    parser.add_argument('--address', dest='address', type=str, help='ip on which socket will run')
     parser.add_argument('--data', dest='data', type=str, help='ip on which socket will run')
 
     args = parser.parse_args()
 
-    client = Client(args.name)
+    client = Client(args.name, args.address, args.port)
     
-    dataset1 = client.load_data('../../../datasets/MachineLearningCSV/MachineLearningCVE/' + args.data, True)
+    dataset1 = client.load_data(args.data, True)
     client.preprocess_data(dataset1, True)
     client.split_data()
+    client.prep_data()
     client.init_empty_model(Supported_modles.SGD_classifier)
 
     while True:
-        cmd = input("stop, login, receive, score or send? ")
+        cmd = input("stop, login, load, score or send? ")
         if cmd == 'stop':
             break
         if cmd == 'login':
             client.login()
+        if cmd == 'load':
+            global_model = client.wait_for_data()
+            client.load_global_model(global_model,Supported_modles.SGD_classifier)
         if cmd == 'send':
-            data = client.fed_avg_send_data(0.2)
+            data = client.fed_avg_prepare_data(0.1,10,Supported_modles.SGD_classifier)
             client.send_data_to_server(data)
-        if cmd == 'receive':
-            client.model = client.wait_for_data()
         if cmd == 'score':
             print(client.test_model_f1())
