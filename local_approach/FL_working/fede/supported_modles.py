@@ -7,3 +7,4 @@ class Supported_modles(str, Enum):
     MLP_classifier = "MLP_classifier"
     rigde_classifier = "RidgeClassifier"
     gradient_boosting_classifier = "GradientBoostingClassifier"
+    NN_classifier = "NeuralNetworkClassifier"

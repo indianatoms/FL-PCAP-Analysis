@@ -3,14 +3,14 @@ from sklearn.utils import shuffle
 from sklearn.preprocessing import StandardScaler
 
 # NODEs
-def set_data(csids=False, downsample = False):
-    client1 = Client("node1","0.0.0.0", 5001)
+def set_data(selected_model ,csids=False, downsample = False):
+    client1 = Client("node1","0.0.0.0", 5001, selected_model)
 
     if csids:
-        client2 = Client("node2","0.0.0.0", 5001)
-        client3 = Client("node3","0.0.0.0", 5001)
-        client4 = Client("node4","0.0.0.0", 5001)
-        client5 = Client("node5","0.0.0.0", 5001)
+        client2 = Client("node2","0.0.0.0", 5001, selected_model)
+        client3 = Client("node3","0.0.0.0", 5001, selected_model)
+        client4 = Client("node4","0.0.0.0", 5001, selected_model)
+        client5 = Client("node5","0.0.0.0", 5001, selected_model)
 
 #wed
         # dataset1 = client1.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedaa.csv', True)
@@ -90,10 +90,10 @@ def set_data(csids=False, downsample = False):
     else:
         dataset = client1.load_data("../../datasets/UNSW_NB15_training-set.csv")
 
-        client2 = Client("node2","localhost",50001)
-        client3 = Client("node3","localhost",50001)
-        client4 = Client("node4","localhost",50001)
-        client5 = Client("node5","localhost",50001)
+        client2 = Client("node2","localhost",50001, selected_model)
+        client3 = Client("node3","localhost",50001, selected_model)
+        client4 = Client("node4","localhost",50001, selected_model)
+        client5 = Client("node5","localhost",50001, selected_model)
 
         dataset = shuffle(dataset)
 
