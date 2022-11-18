@@ -16,35 +16,8 @@ class GlobalModel:
         self.accuracy = 0
         self.f1 = 0
 
-    def init_global_model(self, model_name, feature_numbers):
-        if model_name == Supported_modles.logistic_regression:
-            # initialize global model
-            clf = LogisticRegression(
-                C=1.0,
-                class_weight=None,
-                dual=False,
-                fit_intercept=True,
-                intercept_scaling=1,
-                l1_ratio=None,
-                max_iter=100,
-                multi_class="auto",
-                n_jobs=None,
-                penalty="l2",
-                random_state=13,
-                solver="lbfgs",
-                tol=0.0001,
-                verbose=0,
-                warm_start=False,
-            )
-            clf.intercept_ = np.zeros(1)
-            clf.coef_ = np.zeros((1, feature_numbers))
-            clf.classes_ = np.array([0, 1])
-        if model_name == Supported_modles.SGD_classifier:
-            clf = SGDClassifier(random_state=32, loss="log", class_weight="balanced")
-            clf.intercept_ = np.zeros(1)
-            clf.coef_ = np.zeros((1, feature_numbers))
-            clf.classes_ = np.array([0, 1])
-        self.model = clf
+    def init_global_model(self, model):
+        self.model = model
 
     # update each agent model by current global model values
     def load_global_model(self, model):

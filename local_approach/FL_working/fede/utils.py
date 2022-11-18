@@ -3,7 +3,7 @@ from sklearn.utils import shuffle
 from sklearn.preprocessing import StandardScaler
 
 # NODEs
-def set_data(csids=False):
+def set_data(csids=False, downsample = False):
     client1 = Client("node1","0.0.0.0", 5001)
 
     if csids:
@@ -26,20 +26,18 @@ def set_data(csids=False):
         # dataset4 = client4.load_data('datasets/Friday-PortScanaa.csv', True)
         # dataset5 = client5.load_data('datasets/Friday-PortScanab.csv', True)
 
-
-        dataset = client1.load_data('datasets/Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv', True)
+        #'Wednesday-workingHours.pcap_ISCX.csv'
+        #'Friday-WorkingHours-Morning.pcap_ISCX.csv'
+        dataset = client1.load_data('datasets/Wednesday-workingHours.pcap_ISCX.csv', True)
 
         dataset = shuffle(dataset)
-
-        client1.prep_data()
-        client2.prep_data()
-        client3.prep_data()
-        client4.prep_data()
-        client5.prep_data()
 
         clients = [client1, client2, client3, client4, client5]
 
         client1.preprocess_data(dataset, csids)
+        if downsample:
+            client1.downsample_data(['Destination Port', 'Flow Duration', 'Total Fwd Packets', 'Total Backward Packets','Total Length of Fwd Packets'])
+
 
         client1.prep_data()
 
@@ -61,20 +59,6 @@ def set_data(csids=False):
         client5.x = X[400000:600000]
         client5.y = y[400000:600000]
 
-        client1.x = X[:100000]
-        client1.y = y[:100000]
-
-        client2.x = X[100000:200000]
-        client2.y = y[100000:200000]
-
-        client3.x = X[200000:300000]
-        client3.y = y[200000:300000]
-
-        client4.x = X[300000:400000]
-        client4.y = y[300000:400000]
-
-        client5.x = X[400000:600000]
-        client5.y = y[400000:600000]
 
         test_x = X[600000:]
         test_y = y[600000:]
@@ -98,9 +82,9 @@ def set_data(csids=False):
         # test_y = y[166000:]
 
         client2.feature_names = client1.feature_names
-        client3.feature_names = client1.feature_names
-        client4.feature_names = client1.feature_names
-        client5.feature_names = client1.feature_names
+        # client3.feature_names = client1.feature_names
+        # client4.feature_names = client1.feature_names
+        # client5.feature_names = client1.feature_names
 
         
     else:

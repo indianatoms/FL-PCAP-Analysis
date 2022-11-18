@@ -1,7 +1,7 @@
 from concurrent.futures import thread
 import numpy as np
 from sklearn.linear_model import LogisticRegression, SGDClassifier
-# from sklearn.neural_network import MLP_classifier
+from sklearn.neural_network import MLPClassifier
 import socket, pickle, threading, hashlib, json, jwt, datetime, random
 from supported_modles import Supported_modles
 class Fedavg:
@@ -83,21 +83,8 @@ class Fedavg:
             return True
 
 
-    def init_global_model(self, model_name, model, feature_numbers):
-        if model_name == Supported_modles.SGD_classifier:
-            self.model = SGDClassifier(
-                loss="log",
-                learning_rate="optimal",
-                eta0=0.1,
-                alpha=self.learning_rate
-            )  # global
-            # initialize global model
-            self.model.intercept_ = np.zeros(1)
-            self.model.coef_ = np.zeros((1, feature_numbers))
-            self.model.classes_ = np.array([0, 1])
-        if model_name == Supported_modles.MLP_classifier:
-            clf = model
-            self.model = clf
+    def init_global_model(self, model):
+        self.model = model
 
     def register_client(self, clients):
         self.clients = clients
@@ -135,8 +122,7 @@ class Fedavg:
             model.intercept_ = self.model.intercept_.copy()
             model.coef_ = self.model.coef_.copy()
         if model_name == Supported_modles.MLP_classifier:
-            model.intercepts_ = self.model.intercepts_.copy()
-            model.coefs_ = self.model.coefs_.copy()
+            model = self.model
 
     def train_local_agent(self, X, y, model, epochs, class_weight, model_name):
         for _ in range(0, epochs):
@@ -171,8 +157,7 @@ class Fedavg:
         connection.close()
         print("Data Sent to Server")
 
-class ClientRefused(Exception):
-    """Raised when one of the clinets does not agree to participate"""
+
 
 # Start Flower server for five rounds of federated learning
 if __name__ == "__main__":

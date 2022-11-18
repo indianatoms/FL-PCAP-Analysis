@@ -1,4 +1,3 @@
-from time import sleep
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.compose import ColumnTransformer
@@ -7,18 +6,19 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.linear_model import (
     LogisticRegression,
     SGDClassifier,
-    RidgeClassifier,
-)  # try to use different tools
+)
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score
-from sklearn.utils.class_weight import compute_sample_weight, compute_class_weight
+from sklearn.utils.class_weight import compute_sample_weight
 import numpy as np
 import random
 from fed_transfer import Fed_Avg_Client
 from supported_modles import Supported_modles
+from network import Net2nn
 import socket, pickle
-import sys
+import torch
+
 
 import argparse
 
@@ -182,19 +182,22 @@ class Client:
                 alpha=learning_rate
             )
         if model_name == Supported_modles.MLP_classifier:
-            self.model = model
+            self.model = MLPClassifier()
             self.model.intercepts_ = [
-                np.zeros(40),
+                np.zeros(256),
                 np.zeros(25),
-                np.zeros(5),
                 np.zeros(1),
             ]
             self.model.coefs_ = [
-                np.zeros((57, 40)),
-                np.zeros((40, 25)),
-                np.zeros((25, 5)),
-                np.zeros((5, 1)),
+                np.zeros((self.x.shape[1], 256)),
+                np.zeros((256, 25)),
+                np.zeros((25, 1)),
             ]
+            self.model.n_layers_ = 3
+            self.model.out_activation_ = 'logistic'
+            self.model.n_outputs_=1
+            self.model.classes_ = np.array([0, 1])
+
         if model_name == Supported_modles.logistic_regression:
             self.model = LogisticRegression(
                 C=1.0,
@@ -219,19 +222,23 @@ class Client:
             )
 
     def split_data(self):
-        self.x, self.x_test, self.y, self.y_test = train_test_split(
-            self.x, self.y, test_size=0.33, random_state=random.randint(0, 10)
+        return train_test_split(
+            self.x, self.y, test_size=0.8, stratify=self.y, random_state=random.randint(0, 10)
         )
 
     def prep_data(self):
         prep = StandardScaler()
         self.x = prep.fit_transform(self.x)
 
-    def train_model(self):
-        """ Train model on passed data. Curentlyy only LogReg is used. Function returns intercept and bias
-        which later is being averaged with other model"""
- 
-        self.model.fit(self.x, self.y)
+    def train_model(self, x=None, y=None):
+        if x is None:
+            self.model.fit(self.x, self.y)
+        else:    
+            self.model.fit(x, y)
+
+
+    def partial_train_model(self):
+        self.model.partial_fit(self.x, self.y, classes=np.array([0, 1]))
 
     def train_local_agent(self, X, y, epochs, class_weight, model_name):
         for _ in range(0, epochs):
@@ -240,7 +247,7 @@ class Client:
                     X, y, classes=np.unique(y), sample_weight=class_weight
                 )
             if model_name == Supported_modles.MLP_classifier:
-                self.model.partial_fit(X, y, classes=np.unique(y))
+                self.model.partial_fit(X, y, classes=np.array([0, 1]))
 
     def test_model_accuracy(self, y_test=None, X_test=None):
         if self.model is None:
@@ -343,6 +350,22 @@ class Client:
             response = response.decode()
 
             self.token = response
+
+    def train(self, model, x, y, criterion, optimizer, num_epochs):
+        model.train()
+        train_loss = 0.0
+
+        for _ in range(num_epochs):
+            output = model(x)
+            loss = criterion(output, y)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            
+            train_loss += loss.item()
+            if _ % 10 == 0:
+                print(loss.item())
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run client and get its ip and port.')
