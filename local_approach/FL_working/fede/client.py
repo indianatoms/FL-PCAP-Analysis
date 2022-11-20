@@ -236,15 +236,18 @@ class Client:
         prep = StandardScaler()
         self.x = prep.fit_transform(self.x)
 
-    def train_model(self, x=None, y=None):
+    def train_model(self, x=None, y=None, epochs=10):
         if self.model_name == Supported_modles.NN_classifier:
-            x_train = np.float32(self.x)  
-            y_train = np.float32(self.y)
+            if x is None:
+                x = self.x
+                y = self.y
+            x_train = np.float32(x)  
+            y_train = np.float32(y)
 
             x_train = torch.FloatTensor(x_train)
             y_train = torch.LongTensor(y_train)
 
-            self.train(x_train, y_train, 10)
+            self.train(x_train, y_train, epochs)
             return
         if x is None:
             self.model.fit(self.x, self.y)
@@ -392,7 +395,7 @@ class Client:
 
                 x_train = torch.FloatTensor(x_train)
                 y_train = torch.LongTensor(y_train)
-                self.train(x_train, y_train, 10)
+                self.train(x_train, y_train, epochs)
 
     def load_global_model(self, model):
         self.model = model
