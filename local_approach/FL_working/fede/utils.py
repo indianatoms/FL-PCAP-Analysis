@@ -4,20 +4,36 @@ from sklearn.preprocessing import StandardScaler
 
 # NODEs
 def set_data(csids=False, downsample = False):
+    test_x = None 
+    test_y = None
+
+
     client1 = Client("node1","0.0.0.0", 5001)
+    client2 = Client("node2","0.0.0.0", 5001)
+    client3 = Client("node3","0.0.0.0", 5001)
+    client4 = Client("node4","0.0.0.0", 5001)
+    client5 = Client("node5","0.0.0.0", 5001)
+
+    clients = [client1, client2]#, client3, client4, client5]
+
 
     if csids:
-        client2 = Client("node2","0.0.0.0", 5001)
-        client3 = Client("node3","0.0.0.0", 5001)
-        client4 = Client("node4","0.0.0.0", 5001)
-        client5 = Client("node5","0.0.0.0", 5001)
-
 #wed
         # dataset1 = client1.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedaa.csv', True)
         # dataset2 = client2.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedab.csv', True)
         # dataset3 = client3.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedac.csv', True)
         # dataset4 = client4.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedad.csv', True)
         # dataset5 = client5.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedae.csv', True)
+
+        # client1.preprocess_data(dataset1, csids)
+        # client2.preprocess_data(dataset2, csids)
+        # client3.preprocess_data(dataset3, csids)
+        # client4.preprocess_data(dataset4, csids)
+        # client5.preprocess_data(dataset5, csids)
+
+        # for client in clients:
+        #     client.prep_data()
+        #     client.train_test_split()
 
 
         # dataset1 = client1.load_data('datasets/Friday-DDosaa.csv', True)
@@ -26,13 +42,11 @@ def set_data(csids=False, downsample = False):
         # dataset4 = client4.load_data('datasets/Friday-PortScanaa.csv', True)
         # dataset5 = client5.load_data('datasets/Friday-PortScanab.csv', True)
 
-        #'Wednesday-workingHours.pcap_ISCX.csv'
-        #'Friday-WorkingHours-Morning.pcap_ISCX.csv'
+        'Wednesday-workingHours.pcap_ISCX.csv'
+        'Friday-WorkingHours-Morning.pcap_ISCX.csv'
         dataset = client1.load_data('datasets/Wednesday-workingHours.pcap_ISCX.csv', True)
 
         dataset = shuffle(dataset)
-
-        clients = [client1, client2, client3, client4, client5]
 
         client1.preprocess_data(dataset, csids)
         if downsample:
@@ -82,29 +96,21 @@ def set_data(csids=False, downsample = False):
         # test_y = y[166000:]
 
         client2.feature_names = client1.feature_names
-        # client3.feature_names = client1.feature_names
-        # client4.feature_names = client1.feature_names
-        # client5.feature_names = client1.feature_names
+        client3.feature_names = client1.feature_names
+        client4.feature_names = client1.feature_names
+        client5.feature_names = client1.feature_names
 
         
     else:
         dataset = client1.load_data("../../datasets/UNSW_NB15_training-set.csv")
 
-        client2 = Client("node2","localhost",50001)
-        client3 = Client("node3","localhost",50001)
-        client4 = Client("node4","localhost",50001)
-        client5 = Client("node5","localhost",50001)
-
-        dataset = shuffle(dataset)
-
-
-        clients = [client1, client2, client3, client4, client5]
+        # dataset = shuffle(dataset)
 
         client1.preprocess_data(dataset, csids)
         if downsample:
             client1.downsample_data(['sbytes','dbytes','sttl','dttl','spkts','dpkts'])
 
-        # client1.prep_data()
+        client1.prep_data()
 
         X = client1.x
         y = client1.y

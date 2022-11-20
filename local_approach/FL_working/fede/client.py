@@ -37,6 +37,7 @@ class Client:
         self.token = None
         self.server_address = server_address
         self.server_port = server_port
+        self.round_number = 0
 
         print(f'Creating {self.name}.')
 
@@ -182,7 +183,7 @@ class Client:
                 alpha=learning_rate
             )
         if model_name == Supported_modles.MLP_classifier:
-            self.model = MLPClassifier()
+            self.model = MLPClassifier(solver='sgd', learning_rate = 'adaptive')
             self.model.intercepts_ = [
                 np.zeros(256),
                 np.zeros(25),
@@ -221,10 +222,17 @@ class Client:
                 n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0
             )
 
-    def split_data(self):
-        return train_test_split(
-            self.x, self.y, test_size=0.8, stratify=self.y, random_state=random.randint(0, 10)
-        )
+    def train_test_split(self):
+        self.x, self.x_test, self.y, self.y_test = train_test_split(self.x, self.y, test_size=0.8, stratify=self.y)
+
+
+    def split_data(self, number_of_chunks):
+        self.x_chunks = np.split(self.x,number_of_chunks)
+        self.y_chunks = np.split(self.y,number_of_chunks)
+
+        # return train_test_split(
+        #     self.x, self.y, test_size=0.8, stratify=self.y, random_state=random.randint(0, 10)
+        # )
 
     def prep_data(self):
         prep = StandardScaler()
