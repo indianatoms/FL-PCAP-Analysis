@@ -1,13 +1,18 @@
-from concurrent.futures import thread
 import numpy as np
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.neural_network import MLPClassifier
 import socket, pickle, threading, hashlib, json, jwt, datetime, random
 from supported_modles import Supported_modles
+import torch
+from torch import nn
+from sklearn.metrics import f1_score
+from copy import deepcopy
+
 class Fedavg:
-    def __init__(self, name, learning_rate):
+    def __init__(self, name, learning_rate, model_name):
         self.name = name
         self.model = None
+        self.model_name = model_name
         self.learning_rate = learning_rate
         self.accuracy = 0
         self.ip = '127.0.0.1'
@@ -85,6 +90,8 @@ class Fedavg:
 
     def init_global_model(self, model):
         self.model = model
+        
+
 
     def register_client(self, clients):
         self.clients = clients
@@ -93,7 +100,7 @@ class Fedavg:
         # Average models parameters
         coefs = []
         intercept = []
-        if model_name == Supported_modles.SGD_classifier:
+        if self.model_name == Supported_modles.SGD_classifier:
             for model in applicable_models:
                 coefs.append(model.coef_)
                 intercept.append(model.intercept_)
@@ -105,7 +112,7 @@ class Fedavg:
                 intercept, axis=0, weights=round_weights
             )  # weight
 
-        if model_name == Supported_modles.MLP_classifier:
+        if self.model_name == Supported_modles.MLP_classifier:
             for model in applicable_models:
                 coefs.append(model.coefs_)
                 intercept.append(model.intercepts_)
@@ -116,22 +123,76 @@ class Fedavg:
                 intercept, axis=0, weights=round_weights
             )  # weight
 
+        if self.model_name == Supported_modles.NN_classifier:
+            fc1_mean_weight = torch.zeros(size=applicable_models[0].fc1.weight.shape)
+            fc1_mean_bias = torch.zeros(size=applicable_models[0].fc1.bias.shape)
+    
+            fc2_mean_weight = torch.zeros(size=applicable_models[0].fc2.weight.shape)
+            fc2_mean_bias = torch.zeros(size=applicable_models[0].fc2.bias.shape)
+            
+            fc3_mean_weight = torch.zeros(size=applicable_models[0].fc3.weight.shape)
+            fc3_mean_bias = torch.zeros(size=applicable_models[0].fc3.bias.shape)
+
+            i = 0
+
+            for model in applicable_models:
+                fc1_mean_weight += model.fc1.weight.data.clone() * round_weights[i]
+                fc1_mean_bias += model.fc1.bias.data.clone() * round_weights[i]
+                fc2_mean_weight += model.fc2.weight.data.clone() * round_weights[i]
+                fc2_mean_bias += model.fc2.bias.data.clone() * round_weights[i]
+                fc3_mean_weight += model.fc3.weight.data.clone() * round_weights[i]
+                fc3_mean_bias += model.fc3.bias.data.clone() * round_weights[i]
+                i += 1
+            
+            model.fc1.weight.data = fc1_mean_weight.data.clone()
+            model.fc2.weight.data = fc2_mean_weight.data.clone()
+            model.fc3.weight.data = fc3_mean_weight.data.clone()
+            model.fc1.bias.data = fc1_mean_bias.data.clone()
+            model.fc2.bias.data = fc2_mean_bias.data.clone()
+            model.fc3.bias.data = fc3_mean_bias.data.clone() 
+
+
     # update each agent model by current global model values
     def load_global_model(self, model, model_name):
         if model_name == Supported_modles.SGD_classifier:
             model.intercept_ = self.model.intercept_.copy()
             model.coef_ = self.model.coef_.copy()
-        if model_name == Supported_modles.MLP_classifier:
+        else:
             model = self.model
 
-    def train_local_agent(self, X, y, model, epochs, class_weight, model_name):
+    def train_local_agent(self, X, y, model, epochs, class_weight):
         for _ in range(0, epochs):
-            if model_name == Supported_modles.SGD_classifier:
+            if self.model_name == Supported_modles.SGD_classifier:
                 model.partial_fit(
                     X, y, classes=np.unique(y), sample_weight=class_weight
                 )
-            if model_name == Supported_modles.MLP_classifier:
+            if self.model_name == Supported_modles.MLP_classifier:
                 model.partial_fit(X, y, classes=np.unique(y))
+            if self.model_name == Supported_modles.NN_classifier:
+                x_train = np.float32(X)  
+                y_train = np.float32(y)
+
+                x_train = torch.FloatTensor(x_train)
+                y_train = torch.LongTensor(y_train)
+                self.train(x_train, y_train, 100)
+
+    def test_model_f1(self, y_test=None, X_test=None):
+        if self.model_name == Supported_modles.NN_classifier:
+            test_x = np.float32(X_test)  
+            test_x = torch.FloatTensor(X_test)
+            output = self.model(test_x)
+            prediction = output.argmax(dim=1, keepdim=True)
+            return f1_score(prediction,y_test, average="binary")
+        if self.model is None:
+            print("Model not trined yet.")
+            return 0
+        if y_test is None:
+            y_hat = self.model.predict(self.x_test)
+            return f1_score(self.y_test, y_hat, average="binary")
+        else:
+            y_hat = self.model.predict(X_test)
+            return f1_score(y_test, y_hat, average="binary")            
+            
 
     def wait_for_data(self,connection):
         print('Waitiing for a Connection...')
