@@ -243,7 +243,7 @@ if __name__ == "__main__":
     for x in threads:
         x.join()
 
-    NUMBER_OF_ROUNDS = 4
+    NUMBER_OF_ROUNDS = 5
     epochs = 10
     max_score = 0
     optimal_model = None
@@ -297,22 +297,22 @@ if __name__ == "__main__":
         #     max_score = score
         #     optimal_model = deepcopy(fedavg.model)
 
-        ans = input("Send model to clients? ")
+        # ans = input("Send model to clients? ")
 
-        if ans == "yes" or ans == "y":
-            threads = []
-            while True:
-                Client, address = fedavg.socket.accept()
-                client_handler = threading.Thread(
-                    target=fedavg.send_request,
-                    args=(Client,fedavg.model)  
-                )
-                client_handler.start()
-                threads.append(client_handler)
-                if len(threads) == NUMBER_OF_CLIENTS:
-                    break
-            for x in threads:
-                    x.join()
+        # if ans == "yes" or ans == "y":
+        threads = []
+        while True:
+            Client, address = fedavg.socket.accept()
+            client_handler = threading.Thread(
+                target=fedavg.send_request,
+                args=(Client,fedavg.model)  
+            )
+            client_handler.start()
+            threads.append(client_handler)
+            if len(threads) == NUMBER_OF_CLIENTS:
+                break
+        for x in threads:
+                x.join()
 
     fedavg.socket.close()
         

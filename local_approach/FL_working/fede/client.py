@@ -19,6 +19,8 @@ from network import Net2nn
 import socket, pickle
 import torch
 from torch import nn
+from time import sleep
+import time
 
 
 import argparse
@@ -331,7 +333,6 @@ class Client:
             print("Data Sent to Server")
 
     def wait_for_data(self):
-        print('Waiting for connection')
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         # with conn:
         #     print(f"Connected by {addr}")
@@ -420,7 +421,7 @@ if __name__ == "__main__":
     client.init_empty_model(0.01)
 
     while True:
-        cmd = input("stop, login, load, score or send? ")
+        cmd = input("stop, login, load, local, restet, score or send? ")
         if cmd == 'stop':
             break
         if cmd == 'login':
@@ -429,7 +430,23 @@ if __name__ == "__main__":
             global_model = client.wait_for_data()
             client.load_global_model(global_model)
         if cmd == 'send':
-            data = client.fed_avg_prepare_data(10)
-            client.send_data_to_server(data)
+            for round in range (5):
+                print(f'Staring round: {round}')
+                print(f'Training model')
+                start_time = time.time()
+                data = client.fed_avg_prepare_data(10)
+                execution_time = time.time() - start_time
+                print(f'{execution_time} seconds')
+                sleep(10 - execution_time)
+                print(f'Sending Data')
+                client.send_data_to_server(data)
+                sleep(5)
+                print(f'Wait for server')
+                global_model = client.wait_for_data()
+                client.load_global_model(global_model)
         if cmd == 'score':
             print(client.test_model_f1())
+        if cmd == 'local':
+            client.train_model(epochs = 50)
+        if cmd == 'reset':
+            client.init_empty_model(0.01)
