@@ -174,7 +174,7 @@ class Client:
         self.feature_names = features
 
 
-    def init_empty_model(self, learning_rate):
+    def init_empty_model(self, learning_rate, epochs = 200):
         if self.model_name == Supported_modles.SGD_classifier:
             self.model = SGDClassifier(
                 loss="log",
@@ -183,7 +183,7 @@ class Client:
                 alpha=learning_rate
             )
         if self.model_name == Supported_modles.MLP_classifier:
-            self.model = MLPClassifier()
+            self.model = MLPClassifier(solver='sgd', learning_rate = 'adaptive', max_iter = epochs)
             self.model.intercepts_ = [
                 np.zeros(256),
                 np.zeros(25),
@@ -222,7 +222,7 @@ class Client:
                 n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0
             )
         if self.model_name == Supported_modles.NN_classifier:
-            self.model = Net2nn()
+            self.model = Net2nn(self.x.shape[1])
             self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.01, momentum=0.9)
             self.criterion = nn.CrossEntropyLoss()
 
@@ -231,6 +231,7 @@ class Client:
         return train_test_split(
             self.x, self.y, test_size=test_size, stratify=self.y, random_state=random.randint(0, 10)
         )
+
 
     def prep_data(self):
         prep = StandardScaler()
@@ -259,13 +260,21 @@ class Client:
         self.model.partial_fit(self.x, self.y, classes=np.array([0, 1]))
 
     def train_local_agent(self, X, y, epochs, class_weight, model_name):
-        for _ in range(0, epochs):
-            if model_name == Supported_modles.SGD_classifier:
+        if model_name == Supported_modles.SGD_classifier:
+            for _ in range(0, epochs):
                 self.model.partial_fit(
                     X, y, classes=np.unique(y), sample_weight=class_weight
                 )
-            if model_name == Supported_modles.MLP_classifier:
-                self.model.partial_fit(X, y, classes=np.array([0, 1]))
+        if model_name == Supported_modles.MLP_classifier:
+            for _ in range(0, epochs):
+                    self.model.partial_fit(X, y, classes=np.array([0, 1]))
+        if self.model_name == Supported_modles.NN_classifier:
+                x_train = np.float32(X)  
+                y_train = np.float32(y)
+
+                x_train = torch.FloatTensor(x_train)
+                y_train = torch.LongTensor(y_train)
+                self.train(x_train, y_train, epochs)
 
     def test_model_accuracy(self, y_test=None, X_test=None):
         if self.model is None:
@@ -279,36 +288,29 @@ class Client:
             return accuracy_score(y_test, y_hat)
 
     def test_model_f1(self, y_test=None, X_test=None):
-        if self.model_name == Supported_modles.NN_classifier:
-            test_x = np.float32(X_test)  
-            test_x = torch.FloatTensor(X_test)
-            output = self.model(test_x)
-            prediction = output.argmax(dim=1, keepdim=True)
-            return f1_score(prediction,y_test, average="binary")
         if self.model is None:
             print("Model not trined yet.")
             return 0
         if y_test is None:
-            y_hat = self.model.predict(self.x_test)
-            return f1_score(self.y_test, y_hat, average="binary")
+            X_test = self.x_test
+            y_test = self.y_test
+        if self.model_name == Supported_modles.NN_classifier:
+            test_x = np.float32(X_test)  
+            test_x = torch.FloatTensor(X_test)
+            output = self.model(test_x)
+            y_hat = output.argmax(dim=1, keepdim=True)
         else:
             y_hat = self.model.predict(X_test)
-            return f1_score(y_test, y_hat, average="binary")
+        return f1_score(y_test, y_hat, average="binary")
 
-    def fed_avg_prepare_data(self, batch_size, epochs,model_name):
-        X_train, X_test, y_train, y_test = train_test_split(
-            self.x,
-            self.y,
-            shuffle=True,
-            train_size=batch_size,
-            stratify=self.y,
-            random_state=random.randint(0, 10),
-        )
-        
-        dataset_size = X_train.shape[0]
+    def fed_avg_prepare_data(self, epochs):
+        X_train, X_test, y_train, y_test = self.split_data(0.8)
+
         sample_weights = compute_sample_weight("balanced", y=y_train)
 
-        self.train_local_agent(X_train,y_train,epochs,sample_weights,model_name)
+        self.train_local_agent(X_train,y_train,epochs,sample_weights)
+        
+        dataset_size = self.x.shape[0]
 
         fed = Fed_Avg_Client(
             self.name, dataset_size, self.model
@@ -409,13 +411,13 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    client = Client(args.name, args.address, args.port)
+    client = Client(args.name, args.address, args.port, Supported_modles.NN_classifier)
     
     dataset1 = client.load_data(args.data, True)
     client.preprocess_data(dataset1, True)
-    client.split_data()
     client.prep_data()
-    client.init_empty_model(Supported_modles.SGD_classifier)
+    client.x, client.x_test, client.y, client.y_test = client.split_data(0.1)
+    client.init_empty_model(0.01)
 
     while True:
         cmd = input("stop, login, load, score or send? ")
@@ -425,9 +427,9 @@ if __name__ == "__main__":
             client.login()
         if cmd == 'load':
             global_model = client.wait_for_data()
-            client.load_global_model(global_model,Supported_modles.SGD_classifier)
+            client.load_global_model(global_model)
         if cmd == 'send':
-            data = client.fed_avg_prepare_data(0.1,10,Supported_modles.SGD_classifier)
+            data = client.fed_avg_prepare_data(10)
             client.send_data_to_server(data)
         if cmd == 'score':
             print(client.test_model_f1())

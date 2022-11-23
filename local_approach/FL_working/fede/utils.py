@@ -30,7 +30,7 @@ def set_data(selected_model ,csids=False, downsample = False):
         #'Friday-WorkingHours-Morning.pcap_ISCX.csv'
         dataset = client1.load_data('datasets/Wednesday-workingHours.pcap_ISCX.csv', True)
 
-        # dataset = shuffle(dataset)
+        #dataset = shuffle(dataset)
 
         clients = [client1, client2, client3, client4, client5]
 
@@ -95,7 +95,7 @@ def set_data(selected_model ,csids=False, downsample = False):
         client4 = Client("node4","localhost",50001, selected_model)
         client5 = Client("node5","localhost",50001, selected_model)
 
-        dataset = shuffle(dataset)
+        #dataset = shuffle(dataset)
 
 
         clients = [client1, client2, client3, client4, client5]

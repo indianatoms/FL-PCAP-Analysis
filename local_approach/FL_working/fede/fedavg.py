@@ -1,8 +1,7 @@
 import numpy as np
-from sklearn.linear_model import LogisticRegression, SGDClassifier
-from sklearn.neural_network import MLPClassifier
 import socket, pickle, threading, hashlib, json, jwt, datetime, random
 from supported_modles import Supported_modles
+from sklearn.utils.class_weight import compute_sample_weight
 import torch
 from torch import nn
 from sklearn.metrics import f1_score
@@ -30,7 +29,6 @@ class Fedavg:
             self.hashtable = None
 
         self.socket = socket.socket(family = socket.AF_INET, type = socket.SOCK_STREAM) 
-        ThreadCount = 0
         try:
             self.socket.bind((self.ip, self.port))
         except socket.error as e:
@@ -224,7 +222,8 @@ class Fedavg:
 if __name__ == "__main__":
 
     NUMBER_OF_CLIENTS = 2
-    fedavg = Fedavg("global", 0.05)
+    selected_model = Supported_modles.NN_classifier
+    fedavg = Fedavg("global", 0.1, selected_model)
     ThreadCount = 0
     threads = []
 
@@ -235,7 +234,7 @@ if __name__ == "__main__":
             args=(Client,)  
         )
         client_handler.start()
-        print('Connection Request: ' + str(ThreadCount))
+        print(f'Connection Request: {len(threads)}')
         threads.append(client_handler)
         if len(threads) == NUMBER_OF_CLIENTS:
             break
@@ -243,24 +242,21 @@ if __name__ == "__main__":
     # Wait for all of them to finish
     for x in threads:
         x.join()
-    
-    fedavg.init_global_model(Supported_modles.SGD_classifier, None,78)
 
-    selected_model = Supported_modles.SGD_classifier
-    number_of_rounds = 3
-    batch_size = 0.05
+    NUMBER_OF_ROUNDS = 4
     epochs = 10
+    max_score = 0
+    optimal_model = None
 
-    for _ in range(number_of_rounds):
-
+    for round in range(NUMBER_OF_ROUNDS):
         print(f'Starting new round!')
+        print(round, end=' ')
 
         applicable_models = []
         applicable_name = []
         round_weights = []
-        dataset_size = 0
-        fedavg.clients = []
         threads = []
+        dataset_size = 0
         
         while True:
             Client, address = fedavg.socket.accept()
@@ -277,10 +273,14 @@ if __name__ == "__main__":
         for x in threads:
             x.join()
         
-        applicable_clients = random.sample((fedavg.clients), random.randint(1, 2))
+        applicable_clients = random.sample((fedavg.clients),2)# random.randint(1, 2))
 
+        if round == 0:
+            fedavg.model = applicable_clients[0].model
 
         for client in applicable_clients:
+            print(f'.', end='')
+
             print(client.name)
             round_weights.append(client.dataset_size)
             dataset_size += client.dataset_size
@@ -288,11 +288,14 @@ if __name__ == "__main__":
             applicable_models.append(client.model)
 
 
-        round_weights = np.array(round_weights) / dataset_size # calculate weight based on actual dataset size
-        print(f'ROUNDS: {round_weights}')
-        # round_weights = weights
+        round_weights = np.array(round_weights) / dataset_size
         fedavg.update_global_model(applicable_models, round_weights, selected_model)
-        print(fedavg.model.intercept_)
+
+        # score = fedavg.test_model_f1()
+        # if score > max_score:
+        #     print(score)
+        #     max_score = score
+        #     optimal_model = deepcopy(fedavg.model)
 
         ans = input("Send model to clients? ")
 
