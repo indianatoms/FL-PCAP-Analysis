@@ -28,7 +28,7 @@ Client is taking 4 parameters.
 4. --data - Specifies the path to the dataset which will be used for the local training of the model.
 
 
-How to run server: python3 fedavg.py - it does not take any parameters. In order to specify on which port, and IP address the server will be running, one needs to modify the line 17 and line 18 in the fedavg.py file. Additionally the number of clients and the number of round can be modified in lines 224 and 225.
+How to run server: `python3 fedavg.py` - it does not take any parameters. In order to specify on which port, and IP address the server will be running, one needs to modify the line 17 and line 18 in the fedavg.py file. Additionally the number of clients and the number of round can be modified in lines 224 and 225.
 
 The solution uses as well some helper classes such as:
 
