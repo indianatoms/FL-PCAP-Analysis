@@ -376,7 +376,7 @@ class Client:
         for _ in range(num_epochs):
             output = self.model(x)
             loss = self.criterion(output, y)
-            self.optimizer.zero_grad()
+            self.optimizer.zero_grad()  #what is going on over here
             loss.backward()
             self.optimizer.step()
             
@@ -421,7 +421,7 @@ if __name__ == "__main__":
     client.init_empty_model(0.01)
 
     while True:
-        cmd = input("stop, login, load, local, restet, score or send? ")
+        cmd = input("stop, login, load, local, (reset) model, score or send? ")
         if cmd == 'stop':
             break
         if cmd == 'login':
@@ -434,10 +434,10 @@ if __name__ == "__main__":
                 print(f'Staring round: {round}')
                 print(f'Training model')
                 start_time = time.time()
-                data = client.fed_avg_prepare_data(10)
+                data = client.fed_avg_prepare_data(epochs=10)
                 execution_time = time.time() - start_time
                 print(f'{execution_time} seconds')
-                sleep(10 - execution_time)
+                sleep(15 - execution_time)
                 print(f'Sending Data')
                 client.send_data_to_server(data)
                 sleep(5)
