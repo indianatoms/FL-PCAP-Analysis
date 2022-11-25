@@ -221,7 +221,9 @@ class Fedavg:
 # Start Flower server for five rounds of federated learning
 if __name__ == "__main__":
 
-    NUMBER_OF_CLIENTS = 2
+    NUMBER_OF_CLIENTS = 3
+    NUMBER_OF_ROUNDS = 5
+    
     selected_model = Supported_modles.NN_classifier
     fedavg = Fedavg("global", 0.1, selected_model)
     ThreadCount = 0
@@ -243,7 +245,7 @@ if __name__ == "__main__":
     for x in threads:
         x.join()
 
-    NUMBER_OF_ROUNDS = 5
+    
     epochs = 10
     max_score = 0
     optimal_model = None
