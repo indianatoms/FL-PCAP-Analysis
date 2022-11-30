@@ -88,7 +88,9 @@ def set_data(selected_model ,csids=False, downsample = False):
 
         
     else:
-        dataset = client1.load_data("../../datasets/UNSW_NB15_training-set.csv")
+        dataset = client1.load_data("../../datasets/UNSW_NB15_train-set.csv")
+        test_dataset = client2.load_data("../../datasets/UNSW_NB15_test-set.csv")
+
 
         client2 = Client("node2","localhost",50001, selected_model)
         client3 = Client("node3","localhost",50001, selected_model)
@@ -101,31 +103,33 @@ def set_data(selected_model ,csids=False, downsample = False):
         clients = [client1, client2, client3, client4, client5]
 
         client1.preprocess_data(dataset, csids)
+        client2.preprocess_data(test_dataset, csids)
         if downsample:
             client1.downsample_data(['sbytes','dbytes','sttl','dttl','spkts','dpkts'])
+            client2.downsample_data(['sbytes','dbytes','sttl','dttl','spkts','dpkts'])
 
         # client1.prep_data()
+
+        test_x = client2.x
+        test_y = client2.y
 
         X = client1.x
         y = client1.y
 
-        client1.x = X[:20000]
-        client1.y = y[:20000]
+        client1.x = X[:34000]
+        client1.y = y[:34000]
 
-        client2.x = X[20000:30000]
-        client2.y = y[20000:30000]
+        client2.x = X[34000:68000]
+        client2.y = y[34000:68000]
 
-        client3.x = X[30000:40000]
-        client3.y = y[30000:40000]
+        client3.x = X[68000:102000]
+        client3.y = y[68000:102000]
 
-        client4.x = X[40000:50000]
-        client4.y = y[40000:50000]
+        client4.x = X[102000:142000]
+        client4.y = y[102000:142000]
 
-        client5.x = X[50000:60000]
-        client5.y = y[50000:60000]
-
-        test_x = X[60000:]
-        test_y = y[60000:]
+        client5.x = X[142000:]
+        client5.y = y[142000:]
 
         client2.feature_names = client1.feature_names
         client3.feature_names = client1.feature_names
