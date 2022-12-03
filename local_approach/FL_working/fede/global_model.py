@@ -5,7 +5,7 @@ from sklearn.linear_model import (
 )  # try to use different tools
 import numpy as np
 from supported_modles import Supported_modles
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, accuracy_score
 from sklearn.neural_network import MLPClassifier
 
 
@@ -56,3 +56,11 @@ class GlobalModel:
     def f1_score(self, x_test, y_test):
         y_hat = self.model.predict(x_test)
         return f1_score(y_test, y_hat)
+
+    def accuracy(self, x_test, y_test):
+        y_hat = self.model.predict(x_test)
+        return accuracy_score(y_test, y_hat)
+
+
+
+    
