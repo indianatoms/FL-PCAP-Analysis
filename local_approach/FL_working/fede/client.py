@@ -1,7 +1,5 @@
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.neural_network import MLPClassifier
 from sklearn.linear_model import (
     LogisticRegression,
@@ -52,7 +50,9 @@ class Client:
             columns = [x.strip(' ') for x in columns]
             dataset = pd.read_csv(path, names=columns)
         else:
-            dataset = pd.read_csv(path)
+            # hdrs = "id,dur,proto,service,state,spkts,dpkts,sbytes,dbytes,rate,sttl,dttl,sload,dload,sloss,dloss,sinpkt,dinpkt,sjit,djit,swin,stcpb,dtcpb,dwin,tcprtt,synack,ackdat,smean,dmean,trans_depth,response_body_len,ct_srv_src,ct_state_ttl,ct_dst_ltm,ct_src_dport_ltm,ct_dst_sport_ltm,ct_dst_src_ltm,is_ftp_login,ct_ftp_cmd,ct_flw_http_mthd,ct_src_ltm,ct_srv_dst,is_sm_ips_ports,attack_cat,Label"
+            # columns = hdrs.split(",")
+            dataset = pd.read_csv(path)#, names=columns)
 
         return dataset
 
@@ -98,7 +98,20 @@ class Client:
                 1,
             )
             df["Label"] = df["Label"].replace(["BENIGN"], 0)
+
             df = self.clean_dataset(df)
+
+            # for feature in df.columns:
+            #     if (
+            #         df_numeric[feature].max() > 10 * df_numeric[feature].median()
+            #         and df_numeric[feature].max() > 10
+            #     ):
+            #         df[feature] = np.where(
+            #             df[feature] < df[feature].quantile(0.95),
+            #             df[feature],
+            #             df[feature].quantile(0.95),
+            #         )
+
             df = self.downsample(df)
             X = df.iloc[:, :-1]
             feature_names = list(X.columns)
@@ -106,33 +119,22 @@ class Client:
             y = df.iloc[:, -1]
 
         else:
-            list_drop = ["id", "attack_cat"]
+            y = df.iloc[:, -1]
+            list_drop = ["id", "attack_cat", "label"]
             df.drop(list_drop, axis=1, inplace=True)
-            df_numeric = df.select_dtypes(include=[np.number])
 
-            for feature in df_numeric.columns:
-                if (
-                    df_numeric[feature].max() > 10 * df_numeric[feature].median()
-                    and df_numeric[feature].max() > 10
-                ):
-                    df[feature] = np.where(
-                        df[feature] < df[feature].quantile(0.95),
-                        df[feature],
-                        df[feature].quantile(0.95),
-                    )
+            # for feature in df_numeric.columns:
+            #     if (
+            #         df_numeric[feature].max() > 10 * df_numeric[feature].median()
+            #         and df_numeric[feature].max() > 10
+            #     ):
+            #         df[feature] = np.where(
+            #             df[feature] < df[feature].quantile(0.95),
+            #             df[feature],
+            #             df[feature].quantile(0.95),
+            #         )
+            
 
-            df_numeric = df.select_dtypes(include=[np.number])
-
-            df_numeric = df.select_dtypes(include=[np.number])
-            df_before = df_numeric.copy()
-            for feature in df_numeric.columns:
-                if df_numeric[feature].nunique() > 50:
-                    if df_numeric[feature].min() == 0:
-                        df[feature] = np.log(df[feature] + 1)
-                    else:
-                        df[feature] = np.log(df[feature])
-
-            df_numeric = df.select_dtypes(include=[np.number])
             df_cat = df.select_dtypes(exclude=[np.number])
 
             for feature in df_cat.columns:
@@ -142,28 +144,17 @@ class Client:
                         df[feature],
                         f"{feature}_rest",
                     )
+            
+            for feature in df_cat.columns:
+                one_hot = pd.get_dummies(df[feature])
+                # Drop column B as it is now encoded
+                df = df.drop(feature,axis = 1)
+                # Join the encoded df
+                df = df.join(one_hot)
 
-            df_cat = df.select_dtypes(exclude=[np.number])
-
-            X = df.iloc[:, :-1]
-            y = df.iloc[:, -1]
-
-            ct = ColumnTransformer(
-                transformers=[("encoder", OneHotEncoder(), [1, 2, 3])],
-                remainder="passthrough",
-            )
-            feature_names = list(X.columns)
-            X = np.array(ct.fit_transform(X))
-
-            for label in list(df_cat["state"].value_counts().index)[::-1][1:]:
-                feature_names.insert(0, label)
-
-            for label in list(df_cat["service"].value_counts().index)[::-1][1:]:
-                feature_names.insert(0, label)
-
-            for label in list(df_cat["proto"].value_counts().index)[::-1][1:]:
-                feature_names.insert(0, label)
-            feature_names[5] = "service_not_determined"
+            feature_names = list(df.columns)
+            feature_names[45] = "service_not_determined"
+            X = df.to_numpy()
 
         self.x = X
         self.y = y
@@ -174,6 +165,9 @@ class Client:
         df = pd.DataFrame(self.x, columns=self.feature_names)
         self.x = df[features].to_numpy()
         self.feature_names = features
+    
+    def as_dataset(self):
+        return pd.DataFrame(self.x, columns=self.feature_names)
 
 
     def init_empty_model(self, learning_rate, epochs = 200):

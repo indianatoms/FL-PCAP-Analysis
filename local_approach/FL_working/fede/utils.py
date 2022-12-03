@@ -5,21 +5,13 @@ from sklearn.preprocessing import StandardScaler
 # NODEs
 def set_data(selected_model ,csids=False, downsample = False):
     client1 = Client("node1","0.0.0.0", 5001, selected_model)
+    client2 = Client("node2","0.0.0.0", 5001, selected_model)
+    client3 = Client("node3","0.0.0.0", 5001, selected_model)
+    client4 = Client("node4","0.0.0.0", 5001, selected_model)
+    client5 = Client("node5","0.0.0.0", 5001, selected_model)
 
     if csids:
-        client2 = Client("node2","0.0.0.0", 5001, selected_model)
-        client3 = Client("node3","0.0.0.0", 5001, selected_model)
-        client4 = Client("node4","0.0.0.0", 5001, selected_model)
-        client5 = Client("node5","0.0.0.0", 5001, selected_model)
-
 #wed
-        # dataset1 = client1.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedaa.csv', True)
-        # dataset2 = client2.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedab.csv', True)
-        # dataset3 = client3.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedac.csv', True)
-        # dataset4 = client4.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedad.csv', True)
-        # dataset5 = client5.load_data('../../datasets/MachineLearningCSV/MachineLearningCVE/newWedae.csv', True)
-
-
         # dataset1 = client1.load_data('datasets/Friday-DDosaa.csv', True)
         # dataset2 = client2.load_data('datasets/Friday-DDosab.csv', True)
         # dataset3 = client3.load_data('datasets/Friday-Morning.csv', True)
@@ -82,23 +74,16 @@ def set_data(selected_model ,csids=False, downsample = False):
         # test_y = y[166000:]
 
         client2.feature_names = client1.feature_names
-        # client3.feature_names = client1.feature_names
-        # client4.feature_names = client1.feature_names
-        # client5.feature_names = client1.feature_names
+        client3.feature_names = client1.feature_names
+        client4.feature_names = client1.feature_names
+        client5.feature_names = client1.feature_names
 
         
     else:
         dataset = client1.load_data("../../datasets/UNSW_NB15_train-set.csv")
         test_dataset = client2.load_data("../../datasets/UNSW_NB15_test-set.csv")
 
-
-        client2 = Client("node2","localhost",50001, selected_model)
-        client3 = Client("node3","localhost",50001, selected_model)
-        client4 = Client("node4","localhost",50001, selected_model)
-        client5 = Client("node5","localhost",50001, selected_model)
-
         #dataset = shuffle(dataset)
-
 
         clients = [client1, client2, client3, client4, client5]
 
@@ -108,7 +93,8 @@ def set_data(selected_model ,csids=False, downsample = False):
             client1.downsample_data(['sbytes','dbytes','sttl','dttl','spkts','dpkts'])
             client2.downsample_data(['sbytes','dbytes','sttl','dttl','spkts','dpkts'])
 
-        # client1.prep_data()
+        client1.prep_data()
+        client2.prep_data()
 
         test_x = client2.x
         test_y = client2.y

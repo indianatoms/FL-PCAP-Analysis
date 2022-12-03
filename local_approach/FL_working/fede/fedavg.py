@@ -1,11 +1,10 @@
 import numpy as np
 import socket, pickle, threading, hashlib, json, jwt, datetime, random
 from supported_modles import Supported_modles
-from sklearn.utils.class_weight import compute_sample_weight
 import torch
-from torch import nn
 from sklearn.metrics import f1_score
-from copy import deepcopy
+import time
+from token_expired_exception import TokenExpiredException
 
 class Fedavg:
     def __init__(self, name, learning_rate, model_name):
@@ -80,8 +79,12 @@ class Fedavg:
             try:
                 data = jwt.decode(token, self.secret, algorithms=['HS256'])
                 current_user = data['name']
+                time = data['exp']
             except:
                 return False
+            if time < int(time.time()):
+                raise TokenExpiredException
+
             print(current_user)
             return True
 
@@ -229,6 +232,7 @@ if __name__ == "__main__":
     ThreadCount = 0
     threads = []
 
+    #Timeout login porcess
     while True:
         Client, address = fedavg.socket.accept()
         client_handler = threading.Thread(
@@ -241,9 +245,12 @@ if __name__ == "__main__":
         if len(threads) == NUMBER_OF_CLIENTS:
             break
 
-    # Wait for all of them to finish
+    # Timeout all login processes
     for x in threads:
-        x.join()
+        x.join(30)
+        if x.is_alive():
+            x.terminate()
+            x.join()
 
     
     epochs = 10
@@ -293,15 +300,6 @@ if __name__ == "__main__":
         round_weights = np.array(round_weights) / dataset_size
         fedavg.update_global_model(applicable_models, round_weights, selected_model)
 
-        # score = fedavg.test_model_f1()
-        # if score > max_score:
-        #     print(score)
-        #     max_score = score
-        #     optimal_model = deepcopy(fedavg.model)
-
-        # ans = input("Send model to clients? ")
-
-        # if ans == "yes" or ans == "y":
         threads = []
         while True:
             Client, address = fedavg.socket.accept()
