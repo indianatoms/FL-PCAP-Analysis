@@ -7,11 +7,10 @@ import time
 from token_expired_exception import TokenExpiredException
 
 class Fedavg:
-    def __init__(self, name, learning_rate, model_name):
+    def __init__(self, name, model_name):
         self.name = name
         self.model = None
         self.model_name = model_name
-        self.learning_rate = learning_rate
         self.accuracy = 0
         self.ip = '127.0.0.1'
         self.port = 5001

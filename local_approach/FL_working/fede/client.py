@@ -219,13 +219,20 @@ class Client:
             )
         if self.model_name == Supported_modles.NN_classifier:
             self.model = Net2nn(self.x.shape[1])
-            self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.01, momentum=0.9)
+            self.optimizer = torch.optim.SGD(self.model.parameters(), lr=learning_rate, momentum=0.9)
             self.criterion = nn.CrossEntropyLoss()
+            # self.model.fc1.weight.data.fill_(0.02)
+            # self.model.fc2.weight.data.fill_(0.02)
+            # self.model.fc3.weight.data.fill_(0.02)
+            # self.model.fc1.bias.data.fill_(0.02)
+            # self.model.fc2.bias.data.fill_(0.02)
+            # self.model.fc3.bias.data.fill_(0.02)
+
 
 
     def split_data(self, test_size):
         return train_test_split(
-            self.x, self.y, test_size=test_size, stratify=self.y, random_state=random.randint(0, 10)
+            self.x, self.y, test_size=test_size, stratify=self.y, random_state=1
         )
 
 

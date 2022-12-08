@@ -20,14 +20,13 @@ class User(db.Model):
         return f"User('{self.username}','{self.email}')"
 
 
-class RegresionParameters(db.Model):
+class Model(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    new = db.Column(db.Boolean, unique=False, default=True)
+    model_type = db.Column(db.String(120), unique=True, nullable=False)
     global_model = db.Column(db.Boolean, unique=False, default=False)
-    intercept = db.Column(db.Float, nullable=False)
-    bias = db.Column(db.PickleType)
+    model = db.Column(db.PickleType)
     date_posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
     def __repr__(self):
-        return f"Reg Model('{self.id}','{self.intercept}','{self.new}'),'{self.global_model}')"
+        return f"Reg Model('{self.id}','{self.model_type}'),'{self.global_model}')"

@@ -22,7 +22,7 @@ def set_data(selected_model ,csids=False, downsample = False):
         #'Friday-WorkingHours-Morning.pcap_ISCX.csv'
         dataset = client1.load_data('datasets/Wednesday-workingHours.pcap_ISCX.csv', True)
 
-        dataset = shuffle(dataset)
+        #dataset = shuffle(dataset)
 
         clients = [client1, client2, client3, client4, client5]
 
@@ -83,7 +83,7 @@ def set_data(selected_model ,csids=False, downsample = False):
         dataset = client1.load_data("../../datasets/UNSW_NB15_train-set.csv")
         test_dataset = client2.load_data("../../datasets/UNSW_NB15_test-set.csv")
 
-        dataset = shuffle(dataset)
+        #dataset = shuffle(dataset)
 
         clients = [client1, client2, client3, client4, client5]
 
