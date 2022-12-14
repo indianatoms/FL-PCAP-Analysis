@@ -16,7 +16,6 @@ class Fedavg:
         self.port = 5001
         self.clients = []
         self.hashtable = None
-        self.clients = []
         self.secret = '5791628bb0b13ce0c676dfde280ba245'
         self.socket = None
 
@@ -81,8 +80,8 @@ class Fedavg:
                 time = data['exp']
             except:
                 return False
-            if time < int(time.time()):
-                raise TokenExpiredException
+            # if int(time) < int(time.time()):
+            #     raise TokenExpiredException
 
             print(current_user)
             return True
@@ -136,20 +135,20 @@ class Fedavg:
             i = 0
 
             for model in applicable_models:
-                fc1_mean_weight += model.fc1.weight.data.clone() * round_weights[i]
-                fc1_mean_bias += model.fc1.bias.data.clone() * round_weights[i]
-                fc2_mean_weight += model.fc2.weight.data.clone() * round_weights[i]
-                fc2_mean_bias += model.fc2.bias.data.clone() * round_weights[i]
-                fc3_mean_weight += model.fc3.weight.data.clone() * round_weights[i]
-                fc3_mean_bias += model.fc3.bias.data.clone() * round_weights[i]
+                fc1_mean_weight += model.fc1.weight.data * round_weights[i]
+                fc1_mean_bias += model.fc1.bias.data * round_weights[i]
+                fc2_mean_weight += model.fc2.weight.data * round_weights[i]
+                fc2_mean_bias += model.fc2.bias.data * round_weights[i]
+                fc3_mean_weight += model.fc3.weight.data * round_weights[i]
+                fc3_mean_bias += model.fc3.bias.data * round_weights[i]
                 i += 1
             
-            model.fc1.weight.data = fc1_mean_weight.data.clone()
-            model.fc2.weight.data = fc2_mean_weight.data.clone()
-            model.fc3.weight.data = fc3_mean_weight.data.clone()
-            model.fc1.bias.data = fc1_mean_bias.data.clone()
-            model.fc2.bias.data = fc2_mean_bias.data.clone()
-            model.fc3.bias.data = fc3_mean_bias.data.clone() 
+            self.model.fc1.weight.data = fc1_mean_weight.data.clone()
+            self.model.fc2.weight.data = fc2_mean_weight.data.clone()
+            self.model.fc3.weight.data = fc3_mean_weight.data.clone()
+            self.model.fc1.bias.data = fc1_mean_bias.data.clone()
+            self.model.fc2.bias.data = fc2_mean_bias.data.clone()
+            self.model.fc3.bias.data = fc3_mean_bias.data.clone() 
 
 
     # update each agent model by current global model values
@@ -174,7 +173,7 @@ class Fedavg:
 
                 x_train = torch.FloatTensor(x_train)
                 y_train = torch.LongTensor(y_train)
-                self.train(x_train, y_train, 100)
+                self.train(x_train, y_train, epochs)
 
     def test_model_f1(self, y_test=None, X_test=None):
         if self.model_name == Supported_modles.NN_classifier:
@@ -224,10 +223,10 @@ class Fedavg:
 if __name__ == "__main__":
 
     NUMBER_OF_CLIENTS = 3
-    NUMBER_OF_ROUNDS = 5
+    NUMBER_OF_ROUNDS = 10
     
     selected_model = Supported_modles.NN_classifier
-    fedavg = Fedavg("global", 0.1, selected_model)
+    fedavg = Fedavg("global", selected_model)
     ThreadCount = 0
     threads = []
 
@@ -258,12 +257,13 @@ if __name__ == "__main__":
 
     for round in range(NUMBER_OF_ROUNDS):
         print(f'Starting new round!')
-        print(round, end=' ')
+        print(round + 1)
 
         applicable_models = []
         applicable_name = []
         round_weights = []
         threads = []
+        fedavg.clients = []
         dataset_size = 0
         
         while True:
@@ -281,10 +281,11 @@ if __name__ == "__main__":
         for x in threads:
             x.join()
         
-        applicable_clients = random.sample((fedavg.clients),2)# random.randint(1, 2))
+        applicable_clients = random.sample(fedavg.clients,len(fedavg.clients))
 
         if round == 0:
             fedavg.model = applicable_clients[0].model
+            print('Initialize Model')
 
         for client in applicable_clients:
             print(f'.', end='')

@@ -13,7 +13,7 @@ class User(db.Model):
     admin = db.Column(db.Boolean, default=False)
 
     regModel = db.relationship(
-        "RegresionParameters", backref="author", lazy=True
+        "Model", backref="author", lazy=True
     )  # class reference
 
     def __repr__(self):
@@ -22,11 +22,11 @@ class User(db.Model):
 
 class Model(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    model_type = db.Column(db.String(120), unique=True, nullable=False)
+    model_type = db.Column(db.String(120), unique=False, nullable=False)
     global_model = db.Column(db.Boolean, unique=False, default=False)
-    model = db.Column(db.PickleType)
+    model_parameters = db.Column(db.PickleType)
     date_posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
     def __repr__(self):
-        return f"Reg Model('{self.id}','{self.model_type}'),'{self.global_model}')"
+        return f"Model('{self.id}','{self.model_type}'),'{self.global_model}')"

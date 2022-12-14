@@ -9,3 +9,5 @@ db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
 from flaskapp import routes
+
+app.app_context().push()

@@ -3,7 +3,7 @@ import datetime
 from locale import currency
 from flask import request, jsonify
 import uuid
-from flaskapp.models import User, RegresionParameters
+from flaskapp.models import User, Model
 from flaskapp import app, db, bcrypt
 from flask import json, abort, make_response
 from marshmallow import Schema, fields, ValidationError
@@ -77,9 +77,12 @@ def login():
 
 
 ### Schemas ###
-class RegresionModelSchema(Schema):
+class ParametersSchema(Schema):
     intercept = fields.Float(required=True)
-    bias = fields.List(fields.Float(default=""))
+    coefs = fields.List(fields.Float(default=""))
+class ModelSchema(Schema):
+    type = fields.String(required=True)
+    model = fields.Nested(ParametersSchema)
 class RegisterSchema(Schema):
     username = fields.String(required=True)
     email = fields.String(required=True)
@@ -126,11 +129,11 @@ def get_one_users(current_user ,public_id):
 
 
 @app.route("/user", methods=["POST"])
-@token_required
-def register(current_user):
+# @token_required
+def register():
 
-    if not current_user.admin:
-        return jsonify({'message':'Cannot perform that. Only and admin function.'})
+    # if not current_user.admin:
+    #     return jsonify({'message':'Cannot perform that. Only and admin function.'})
 
     data = request.json
     schema = RegisterSchema()
@@ -201,17 +204,15 @@ def delete_user(current_user, public_id):
 def get_all_models(current_user):
     if not current_user.admin:
         return jsonify({'message':'Cannot perform that. Only an admin function.'})
-    reg_models = RegresionParameters.query.all()
+    reg_models = Model.query.all()
 
     output = []
     for model in reg_models:
         model_data = {}
         model_data['id'] = model.id
-        model_data['owner'] = model.user_id
-        model_data["bias"] = model.bias
-        model_data["intercept"] = model.intercept
-        model_data["new"] = model.new
+        model_data["model_type"] = model.model_type
         model_data["global_model"] = model.global_model
+        model_data["model"] = model.model_parameters
         output.append(model_data)
     return jsonify({"models": output})
 
@@ -221,7 +222,7 @@ def get_all_models(current_user):
 def add_model(current_user):
 
     data = request.json
-    schema = RegresionModelSchema()
+    schema = ModelSchema()
 
     try:
         # Validate request body against schema data types
@@ -230,9 +231,9 @@ def add_model(current_user):
         # Return a nice message if validation fails
         return jsonify(err.messages), 400
 
-    model = RegresionParameters(
-        intercept=data["intercept"],
-        bias=data["bias"],
+    model = Model(
+        model_type=data["type"],
+        model_parameters=data["model"],
         user_id=current_user.id,
         global_model=False,
     )
@@ -245,15 +246,14 @@ def add_model(current_user):
 @app.route("/model/<int:model_id>", methods=['GET'])
 @token_required
 def post(current_user, model_id):
-    model = RegresionParameters.query.get_or_404(model_id)
+    model = Model.query.get_or_404(model_id)
 
     if model.user_id == current_user.id or current_user.admin:
         response = app.response_class(
             response=json.dumps(
                 {
                     "model_id": model.id,
-                    "bias": model.bias,
-                    "intercept": model.intercept,
+                    "model_type": model.model_type,
                     "new": model.new,
                 }
             ),
@@ -266,7 +266,7 @@ def post(current_user, model_id):
 @app.route("/model/<int:model_id>", methods=["DELETE"])
 @token_required
 def delete_post(current_user, model_id):
-    model = RegresionParameters.query.get_or_404(model_id)
+    model = Model.query.get_or_404(model_id)
 
     if model.user_id == current_user.id or current_user.admin:
         db.session.delete(model)
@@ -309,31 +309,29 @@ def calcualte_global_model(current_user):
     
     data = request.json
     sum_intercept = 0
-    model = RegresionParameters.query.get_or_404(data["models_id"][0])
-    sum_bias = np.zeros(len(model.bias))
+    model = Model.query.get_or_404(data["models_id"][0])
+    model_type = model.model_type
+    sum_coefs = np.zeros(len(model.model_parameters['coefs']))
     for id in data["models_id"]:
-        model = RegresionParameters.query.get_or_404(id)
-        if model.new == False:
-            msg = jsonify(message="Models have already been averaged.")
-            response = make_response(msg, 400)
-            abort(response)
-        sum_intercept = sum_intercept + model.intercept
-        sum_bias = +np.add(sum_bias, model.bias)
-        model.new = False
+        model = Model.query.get_or_404(id)
+        sum_intercept = sum_intercept + model.model_parameters['intercept']
+        sum_coefs = +np.add(sum_coefs, model.model_parameters['coefs'])
         db.session.commit()
 
     avg_intercept = sum_intercept / len(data["models_id"])
-    avg_bias = sum_bias / len(data["models_id"])
+    avg_coefs = sum_coefs / len(data["models_id"])
 
-    model = RegresionParameters(
-        intercept=avg_intercept, bias=avg_bias.tolist(), global_model=True, user_id=999
+    model_json = { "intercept": avg_intercept, "coefs":avg_coefs.tolist() }
+
+    model = Model(
+        model_parameters=model_json, model_type=model_type ,global_model=True, user_id=current_user.id
     )
     db.session.add(model)
     db.session.commit()
 
     response = app.response_class(
         response=json.dumps(
-            {"intercept": avg_intercept, "bias": avg_bias.tolist(), "id": model.id}
+            {"intercept": avg_intercept, "bias": avg_coefs.tolist(), "id": model.id}
         ),
         status=200,
         mimetype="application/json",
@@ -344,9 +342,9 @@ def calcualte_global_model(current_user):
 @app.route("/model/global", methods=["GET"])  # for all
 @token_required
 def get_global_model(current_user):
-    model = RegresionParameters.query.filter_by(global_model=True, new=True).first()
+    model = Model.query.filter_by(global_model=True).first()
     response = app.response_class(
-        response=json.dumps({"intercept": model.intercept, "bias": model.bias}),
+        response=json.dumps({"models": model.model_parameters}),
         status=200,
         mimetype="application/json",
     )

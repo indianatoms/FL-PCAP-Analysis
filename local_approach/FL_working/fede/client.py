@@ -19,6 +19,7 @@ import torch
 from torch import nn
 from time import sleep
 import time
+from copy import deepcopy
 
 
 import argparse
@@ -174,9 +175,9 @@ class Client:
         if self.model_name == Supported_modles.SGD_classifier:
             self.model = SGDClassifier(
                 loss="log",
-                learning_rate="optimal",
-                eta0=0.1,
-                alpha=learning_rate
+                learning_rate="constant",
+                eta0=learning_rate,
+                alpha=0.01
             )
         if self.model_name == Supported_modles.MLP_classifier:
             self.model = MLPClassifier(solver='sgd', learning_rate = 'adaptive', max_iter = epochs)
@@ -262,13 +263,13 @@ class Client:
     def partial_train_model(self):
         self.model.partial_fit(self.x, self.y, classes=np.array([0, 1]))
 
-    def train_local_agent(self, X, y, epochs, class_weight, model_name):
-        if model_name == Supported_modles.SGD_classifier:
+    def train_local_agent(self, X, y, epochs, class_weight):
+        if self.model_name == Supported_modles.SGD_classifier:
             for _ in range(0, epochs):
                 self.model.partial_fit(
                     X, y, classes=np.unique(y), sample_weight=class_weight
                 )
-        if model_name == Supported_modles.MLP_classifier:
+        if self.model_name == Supported_modles.MLP_classifier:
             for _ in range(0, epochs):
                     self.model.partial_fit(X, y, classes=np.array([0, 1]))
         if self.model_name == Supported_modles.NN_classifier:
@@ -277,7 +278,7 @@ class Client:
 
                 x_train = torch.FloatTensor(x_train)
                 y_train = torch.LongTensor(y_train)
-                self.train(x_train, y_train, epochs)
+                self.train(x_train, y_train, epochs) 
 
     def test_model_accuracy(self, y_test=None, X_test=None):
         if self.model is None:
@@ -313,7 +314,7 @@ class Client:
 
         self.train_local_agent(X_train,y_train,epochs,sample_weights)
         
-        dataset_size = self.x.shape[0]
+        dataset_size = X_train.shape[0]
 
         fed = Fed_Avg_Client(
             self.name, dataset_size, self.model
@@ -374,35 +375,26 @@ class Client:
     def train(self, x, y, num_epochs):
         self.model.train()
 
+
         for _ in range(num_epochs):
             output = self.model(x)
             loss = self.criterion(output, y)
             self.optimizer.zero_grad()  #what is going on over here
             loss.backward()
             self.optimizer.step()
-            
-            # train_loss += loss.item()
-            # if _ % 10 == 0:
-            #     print(loss.item())
     
-    def train_local_agent(self, X, y, epochs, class_weight):
-        for _ in range(0, epochs):
-            if self.model_name == Supported_modles.SGD_classifier:
-                self.model.partial_fit(
-                    X, y, classes=np.unique(y), sample_weight=class_weight
-                )
-            if self.model_name == Supported_modles.MLP_classifier:
-                self.model.partial_fit(X, y, classes=np.unique(y))
-            if self.model_name == Supported_modles.NN_classifier:
-                x_train = np.float32(X)  
-                y_train = np.float32(y)
-
-                x_train = torch.FloatTensor(x_train)
-                y_train = torch.LongTensor(y_train)
-                self.train(x_train, y_train, epochs)
 
     def load_global_model(self, model):
-        self.model = model
+        #self.model = model
+        if self.model_name == Supported_modles.NN_classifier:
+            self.model.fc1.weight.data = model.fc1.weight.data 
+            self.model.fc2.weight.data = model.fc2.weight.data 
+            self.model.fc3.weight.data = model.fc3.weight.data 
+            self.model.fc1.bias.data = model.fc1.bias.data
+            self.model.fc2.bias.data = model.fc2.bias.data
+            self.model.fc3.bias.data = model.fc3.bias.data 
+        else:
+            self.model = model
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run client and get its ip and port.')
@@ -418,7 +410,7 @@ if __name__ == "__main__":
     dataset1 = client.load_data(args.data, True)
     client.preprocess_data(dataset1, True)
     client.prep_data()
-    client.x, client.x_test, client.y, client.y_test = client.split_data(0.1)
+    client.x, client.x_test, client.y, client.y_test = client.split_data(0.3)
     client.init_empty_model(0.01)
 
     while True:
@@ -431,20 +423,21 @@ if __name__ == "__main__":
             global_model = client.wait_for_data()
             client.load_global_model(global_model)
         if cmd == 'send':
-            for round in range (5):
+            for round in range (10):
                 print(f'Staring round: {round}')
                 print(f'Training model')
                 start_time = time.time()
                 data = client.fed_avg_prepare_data(epochs=10)
                 execution_time = time.time() - start_time
                 print(f'{execution_time} seconds')
-                sleep(15 - execution_time)
+                sleep(5 - execution_time)
                 print(f'Sending Data')
                 client.send_data_to_server(data)
                 sleep(5)
                 print(f'Wait for server')
                 global_model = client.wait_for_data()
                 client.load_global_model(global_model)
+                print(client.test_model_f1())
         if cmd == 'score':
             print(client.test_model_f1())
         if cmd == 'local':

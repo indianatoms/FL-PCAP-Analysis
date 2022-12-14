@@ -125,6 +125,47 @@ def set_data(selected_model ,csids=False, downsample = False):
     return clients, test_x, test_y
 
 
+
+def set_data_mock(selected_model ,csids=False, downsample = False):
+    client1 = Client("node1","0.0.0.0", 5001, selected_model)
+    client2 = Client("node2","0.0.0.0", 5001, selected_model)
+    client3 = Client("node3","0.0.0.0", 5001, selected_model)
+
+    if csids:
+#wed
+        # dataset1 = client1.load_data('datasets/Friday-DDosaa.csv', True)
+        # dataset2 = client2.load_data('datasets/Friday-DDosab.csv', True)
+        # dataset3 = client3.load_data('datasets/Friday-Morning.csv', True)
+        # dataset4 = client4.load_data('datasets/Friday-PortScanaa.csv', True)
+        # dataset5 = client5.load_data('datasets/Friday-PortScanab.csv', True)
+
+        #'Wednesday-workingHours.pcap_ISCX.csv'
+        #'Friday-WorkingHours-Morning.pcap_ISCX.csv'
+        dataset1 = client1.load_data('datasets/mock_testsaa.csv', True)
+        dataset2 = client1.load_data('datasets/mock_testsab.csv', True)
+        dataset3 = client1.load_data('datasets/mock_testsac.csv', True)
+
+
+        #dataset = shuffle(dataset)
+
+        clients = [client1, client2, client3]
+
+        client1.preprocess_data(dataset1, csids)
+        client2.preprocess_data(dataset2, csids)
+        client3.preprocess_data(dataset3, csids)
+
+        client1.prep_data()
+        client2.prep_data()
+        client3.prep_data()
+
+        client1.x, client1.x_test, client1.y, client1.y_test = client1.split_data(0.3)
+        client2.x, client2.x_test, client2.y, client2.y_test = client2.split_data(0.3)
+        client3.x, client3.x_test, client3.y, client3.y_test = client3.split_data(0.3)
+
+    return clients
+
+
+
 def centralized_data():
     client1 = Client("node1", "0.0.0.0",50001)
     dataset = client1.load_data("../../datasets/UNSW_NB15_training-set.csv")
