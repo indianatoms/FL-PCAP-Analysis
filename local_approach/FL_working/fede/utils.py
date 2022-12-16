@@ -20,7 +20,7 @@ def set_data(selected_model ,csids=False, downsample = False):
 
         #'Wednesday-workingHours.pcap_ISCX.csv'
         #'Friday-WorkingHours-Morning.pcap_ISCX.csv'
-        dataset = client1.load_data('datasets/Wednesday-workingHours.pcap_ISCX.csv', True)
+        dataset = client1.load_data('data/Wednesday-workingHours.pcap_ISCX.csv', True)
 
         #dataset = shuffle(dataset)
 
@@ -80,8 +80,8 @@ def set_data(selected_model ,csids=False, downsample = False):
 
         
     else:
-        dataset = client1.load_data("../../datasets/UNSW_NB15_train-set.csv")
-        test_dataset = client2.load_data("../../datasets/UNSW_NB15_test-set.csv")
+        dataset = client1.load_data("../../data/UNSW_NB15_train-set.csv")
+        test_dataset = client2.load_data("../../data/UNSW_NB15_test-set.csv")
 
         #dataset = shuffle(dataset)
 
@@ -166,12 +166,33 @@ def set_data_mock(selected_model ,csids=False, downsample = False):
 
 
 
-def centralized_data():
-    client1 = Client("node1", "0.0.0.0",50001)
-    dataset = client1.load_data("../../datasets/UNSW_NB15_training-set.csv")
+def centralized_data(selected_model ,csids=False, downsample = False, shuffle = False):
+    client1 = Client("node1","0.0.0.0", 5001, selected_model)
+    client2 = Client("node2","0.0.0.0", 5001, selected_model)
+    if csids:
+        dataset = client1.load_data('data/Wednesday-workingHours.pcap_ISCX.csv', True)
+        if shuffle:
+            dataset = shuffle(dataset)
+        client1.preprocess_data(dataset, csids)
+        client1.prep_data()
 
-    dataset = shuffle(dataset)
+        X = client1.x[:600000]
+        y = client1.y[:600000]
 
-    client1.preprocess_data(dataset)
+        test_x = client1.x[600000:]
+        test_y = client1.y[600000:]
 
-    return client1
+    else:
+        dataset = client1.load_data("data/UNSW_NB15_train-set.csv")
+        test_dataset = client2.load_data("data/UNSW_NB15_test-set.csv")
+        client1.preprocess_data(dataset, csids)
+        client2.preprocess_data(test_dataset, csids)
+        client1.prep_data()
+        client2.prep_data()
+
+        test_x = client2.x
+        test_y = client2.y
+
+        X = client1.x
+        y = client1.y
+    return client1, X, y, test_x, test_y

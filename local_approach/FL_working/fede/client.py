@@ -175,48 +175,14 @@ class Client:
         if self.model_name == Supported_modles.SGD_classifier:
             self.model = SGDClassifier(
                 loss="log",
-                learning_rate="constant",
-                eta0=learning_rate,
-                alpha=0.01
+                alpha=learning_rate,
+                penalty='l1',
+                max_iter=epochs
             )
-        if self.model_name == Supported_modles.MLP_classifier:
-            self.model = MLPClassifier(solver='sgd', learning_rate = 'adaptive', max_iter = epochs)
-            self.model.intercepts_ = [
-                np.zeros(256),
-                np.zeros(25),
-                np.zeros(1),
-            ]
-            self.model.coefs_ = [
-                np.zeros((self.x.shape[1], 256)),
-                np.zeros((256, 25)),
-                np.zeros((25, 1)),
-            ]
-            self.model.n_layers_ = 3
-            self.model.out_activation_ = 'logistic'
-            self.model.n_outputs_=1
-            self.model.classes_ = np.array([0, 1])
-
         if self.model_name == Supported_modles.logistic_regression:
             self.model = LogisticRegression(
-                C=1.0,
-                class_weight=None,
-                dual=False,
-                fit_intercept=True,
-                intercept_scaling=1,
-                l1_ratio=None,
-                max_iter=100,
-                multi_class="auto",
-                n_jobs=None,
-                penalty="l2",
-                random_state=13,
-                solver="lbfgs",
-                tol=0.0001,
-                verbose=0,
-                warm_start=False,
-            )
-        if self.model_name == Supported_modles.gradient_boosting_classifier:
-            self.model = GradientBoostingClassifier(
-                n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0
+                C=100000,
+                penalty="l2"
             )
         if self.model_name == Supported_modles.NN_classifier:
             self.model = Net2nn(self.x.shape[1])
