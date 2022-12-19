@@ -3,7 +3,7 @@ from sklearn.utils import shuffle
 from sklearn.preprocessing import StandardScaler
 
 # NODEs
-def set_data(selected_model ,csids=False, downsample = False):
+def set_data(selected_model ,csids=False, downsample = False, data_shuffle = False):
     client1 = Client("node1","0.0.0.0", 5001, selected_model)
     client2 = Client("node2","0.0.0.0", 5001, selected_model)
     client3 = Client("node3","0.0.0.0", 5001, selected_model)
@@ -11,18 +11,14 @@ def set_data(selected_model ,csids=False, downsample = False):
     client5 = Client("node5","0.0.0.0", 5001, selected_model)
 
     if csids:
-#wed
-        # dataset1 = client1.load_data('datasets/Friday-DDosaa.csv', True)
-        # dataset2 = client2.load_data('datasets/Friday-DDosab.csv', True)
-        # dataset3 = client3.load_data('datasets/Friday-Morning.csv', True)
-        # dataset4 = client4.load_data('datasets/Friday-PortScanaa.csv', True)
-        # dataset5 = client5.load_data('datasets/Friday-PortScanab.csv', True)
-
-        #'Wednesday-workingHours.pcap_ISCX.csv'
-        #'Friday-WorkingHours-Morning.pcap_ISCX.csv'
         dataset = client1.load_data('data/Wednesday-workingHours.pcap_ISCX.csv', True)
 
-        #dataset = shuffle(dataset)
+        if data_shuffle:
+            test_dataset = dataset[600000:].copy()
+            dataset = dataset[:600000]
+            dataset = shuffle(dataset)
+            client2.preprocess_data(test_dataset, True, False)
+            
 
         clients = [client1, client2, client3, client4, client5]
 
@@ -35,6 +31,15 @@ def set_data(selected_model ,csids=False, downsample = False):
 
         X = client1.x
         y = client1.y
+
+
+        if data_shuffle:
+            test_x = client2.x
+            test_y = client2.y
+        else:
+            test_x = X[600000:]
+            test_y = y[600000:]
+
 
         client1.x = X[:100000]
         client1.y = y[:100000]
@@ -51,28 +56,6 @@ def set_data(selected_model ,csids=False, downsample = False):
         client5.x = X[400000:600000]
         client5.y = y[400000:600000]
 
-
-        test_x = X[600000:]
-        test_y = y[600000:]
-
-        # client1.x = X[:33000]
-        # client1.y = y[:33000]
-
-        # client2.x = X[33000:66000]
-        # client2.y = y[33000:66000]
-
-        # client3.x = X[66000:99000]
-        # client3.y = y[66000:99000]
-
-        # client4.x = X[99000:133000]
-        # client4.y = y[99000:133000]
-
-        # client5.x = X[133000:166000]
-        # client5.y = y[133000:166000]
-
-        # test_x = X[166000:]
-        # test_y = y[166000:]
-
         client2.feature_names = client1.feature_names
         client3.feature_names = client1.feature_names
         client4.feature_names = client1.feature_names
@@ -80,10 +63,11 @@ def set_data(selected_model ,csids=False, downsample = False):
 
         
     else:
-        dataset = client1.load_data("../../data/UNSW_NB15_train-set.csv")
-        test_dataset = client2.load_data("../../data/UNSW_NB15_test-set.csv")
+        dataset = client1.load_data("data/UNSW_NB15_train-set.csv")
+        test_dataset = client2.load_data("data/UNSW_NB15_test-set.csv")
 
-        #dataset = shuffle(dataset)
+        if data_shuffle:
+            dataset = shuffle(dataset)
 
         clients = [client1, client2, client3, client4, client5]
 
@@ -141,8 +125,8 @@ def set_data_mock(selected_model ,csids=False, downsample = False):
 
         #'Wednesday-workingHours.pcap_ISCX.csv'
         #'Friday-WorkingHours-Morning.pcap_ISCX.csv'
-        dataset1 = client1.load_data('datasets/mock_testsaa.csv', True)
-        dataset2 = client1.load_data('datasets/mock_testsab.csv', True)
+        dataset1 = client1.load_data('data/mock_testsaa.csv', True)
+        dataset2 = client1.load_data('data/mock_testsab.csv', True)
         dataset3 = client1.load_data('datasets/mock_testsac.csv', True)
 
 

@@ -64,6 +64,9 @@ class Client:
         count_class_0 = df_class_0.shape[0]
         count_class_1 = df_class_1.shape[0]
 
+        print(count_class_0)
+        print(count_class_1)
+
         if count_class_0/(count_class_0 + count_class_1) < 0.2:
             print(f'DOWNSAMLING {self.name}')
             df_class_1_under = df_class_1.sample(count_class_0)
@@ -80,7 +83,7 @@ class Client:
         indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
         return df[indices_to_keep].astype(np.float64)
 
-    def preprocess_data(self, df: pd.DataFrame, ciids=False):
+    def preprocess_data(self, df: pd.DataFrame, ciids=False, downsample = True):
         """Preprocess and split data into X and y. Where X are features and y is the packet label. 
         String gata are One Hot encoded."""
 
@@ -112,8 +115,8 @@ class Client:
             #             df[feature],
             #             df[feature].quantile(0.95),
             #         )
-
-            df = self.downsample(df)
+            if downsample:
+                df = self.downsample(df)
             X = df.iloc[:, :-1]
             feature_names = list(X.columns)
             X = X.to_numpy()
@@ -171,7 +174,7 @@ class Client:
         return pd.DataFrame(self.x, columns=self.feature_names)
 
 
-    def init_empty_model(self, learning_rate, epochs = 200):
+    def init_empty_model(self, learning_rate, epochs = 20):
         if self.model_name == Supported_modles.SGD_classifier:
             self.model = SGDClassifier(
                 loss="log",
@@ -235,9 +238,6 @@ class Client:
                 self.model.partial_fit(
                     X, y, classes=np.unique(y), sample_weight=class_weight
                 )
-        if self.model_name == Supported_modles.MLP_classifier:
-            for _ in range(0, epochs):
-                    self.model.partial_fit(X, y, classes=np.array([0, 1]))
         if self.model_name == Supported_modles.NN_classifier:
                 x_train = np.float32(X)  
                 y_train = np.float32(y)

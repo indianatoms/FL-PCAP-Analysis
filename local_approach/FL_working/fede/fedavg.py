@@ -111,17 +111,6 @@ class Fedavg:
                 intercept, axis=0, weights=round_weights
             )  # weight
 
-        if self.model_name == Supported_modles.MLP_classifier:
-            for model in applicable_models:
-                coefs.append(model.coefs_)
-                intercept.append(model.intercepts_)
-            self.model.coefs_ = np.average(
-                coefs, axis=0, weights=round_weights
-            )  # weight
-            self.model.intercepts_ = np.average(
-                intercept, axis=0, weights=round_weights
-            )  # weight
-
         if self.model_name == Supported_modles.NN_classifier:
             fc1_mean_weight = torch.zeros(size=applicable_models[0].fc1.weight.shape)
             fc1_mean_bias = torch.zeros(size=applicable_models[0].fc1.bias.shape)
