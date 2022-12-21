@@ -229,8 +229,11 @@ class Client:
             self.model.fit(x, y)
 
 
-    def partial_train_model(self):
-        self.model.partial_fit(self.x, self.y, classes=np.array([0, 1]))
+    def partial_train_model(self, x=None, y=None):
+        if x is None:
+            x = self.x
+            y = self.y
+        self.model.partial_fit(x, y, classes=np.array([0, 1]))
 
     def train_local_agent(self, X, y, epochs, class_weight):
         if self.model_name == Supported_modles.SGD_classifier:
@@ -348,6 +351,8 @@ class Client:
             self.optimizer.zero_grad()  #what is going on over here
             loss.backward()
             self.optimizer.step()
+            # if _ % 10 == 0:
+            #     print(loss)
     
 
     def load_global_model(self, model):

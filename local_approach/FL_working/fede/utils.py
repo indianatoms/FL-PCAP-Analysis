@@ -1,6 +1,6 @@
-from fede.client import Client
+from local_approach.FL_working.client import Client
 from sklearn.utils import shuffle
-from sklearn.preprocessing import StandardScaler
+import pandas as pd
 
 # NODEs
 def set_data(selected_model ,csids=False, downsample = False, data_shuffle = False):
@@ -14,10 +14,7 @@ def set_data(selected_model ,csids=False, downsample = False, data_shuffle = Fal
         dataset = client1.load_data('data/Wednesday-workingHours.pcap_ISCX.csv', True)
 
         if data_shuffle:
-            test_dataset = dataset[600000:].copy()
-            dataset = dataset[:600000]
             dataset = shuffle(dataset)
-            client2.preprocess_data(test_dataset, True, False)
             
 
         clients = [client1, client2, client3, client4, client5]
@@ -32,29 +29,24 @@ def set_data(selected_model ,csids=False, downsample = False, data_shuffle = Fal
         X = client1.x
         y = client1.y
 
-
-        if data_shuffle:
-            test_x = client2.x
-            test_y = client2.y
-        else:
-            test_x = X[600000:]
-            test_y = y[600000:]
+        test_x = X[:100000]
+        test_y = y[:100000]
 
 
-        client1.x = X[:100000]
-        client1.y = y[:100000]
+        client1.x = X[100000:200000]
+        client1.y = y[100000:200000]
 
-        client2.x = X[100000:200000]
-        client2.y = y[100000:200000]
+        client2.x = X[200000:300000]
+        client2.y = y[200000:300000]
 
-        client3.x = X[200000:300000]
-        client3.y = y[200000:300000]
+        client3.x = X[300000:400000]
+        client3.y = y[300000:400000]
 
-        client4.x = X[300000:400000]
-        client4.y = y[300000:400000]
+        client4.x = X[400000:500000]
+        client4.y = y[400000:500000]
 
-        client5.x = X[400000:600000]
-        client5.y = y[400000:600000]
+        client5.x = X[500000:600000]
+        client5.y = y[500000:600000]
 
         client2.feature_names = client1.feature_names
         client3.feature_names = client1.feature_names
@@ -65,23 +57,21 @@ def set_data(selected_model ,csids=False, downsample = False, data_shuffle = Fal
     else:
         dataset = client1.load_data("data/UNSW_NB15_train-set.csv")
         test_dataset = client2.load_data("data/UNSW_NB15_test-set.csv")
+        df = pd.concat([dataset,test_dataset], ignore_index=True)
+
 
         if data_shuffle:
-            dataset = shuffle(dataset)
+            df = shuffle(df)
 
         clients = [client1, client2, client3, client4, client5]
 
-        client1.preprocess_data(dataset, csids)
-        client2.preprocess_data(test_dataset, csids)
+        client1.preprocess_data(df, csids)
         if downsample:
             client1.downsample_data(['sbytes','dbytes','sttl','dttl','spkts','dpkts'])
             client2.downsample_data(['sbytes','dbytes','sttl','dttl','spkts','dpkts'])
 
         client1.prep_data()
-        client2.prep_data()
 
-        test_x = client2.x
-        test_y = client2.y
 
         X = client1.x
         y = client1.y
@@ -98,8 +88,11 @@ def set_data(selected_model ,csids=False, downsample = False, data_shuffle = Fal
         client4.x = X[102000:142000]
         client4.y = y[102000:142000]
 
-        client5.x = X[142000:]
-        client5.y = y[142000:]
+        client5.x = X[142000:180000]
+        client5.y = y[142000:180000]
+
+        test_x = X[180000:]
+        test_y = y[180000:]
 
         client2.feature_names = client1.feature_names
         client3.feature_names = client1.feature_names
@@ -150,33 +143,35 @@ def set_data_mock(selected_model ,csids=False, downsample = False):
 
 
 
-def centralized_data(selected_model ,csids=False, downsample = False, shuffle = False):
+def centralized_data(selected_model ,csids=False, downsample = False, data_shuffle = False):
     client1 = Client("node1","0.0.0.0", 5001, selected_model)
     client2 = Client("node2","0.0.0.0", 5001, selected_model)
     if csids:
         dataset = client1.load_data('data/Wednesday-workingHours.pcap_ISCX.csv', True)
-        if shuffle:
+        if data_shuffle:
             dataset = shuffle(dataset)
         client1.preprocess_data(dataset, csids)
         client1.prep_data()
 
-        X = client1.x[:600000]
-        y = client1.y[:600000]
+        X = client1.x[100000:]
+        y = client1.y[100000:]
 
-        test_x = client1.x[600000:]
-        test_y = client1.y[600000:]
+        test_x = client1.x[:100000]
+        test_y = client1.y[:100000]
 
     else:
         dataset = client1.load_data("data/UNSW_NB15_train-set.csv")
         test_dataset = client2.load_data("data/UNSW_NB15_test-set.csv")
-        client1.preprocess_data(dataset, csids)
-        client2.preprocess_data(test_dataset, csids)
+        df = pd.concat([test_dataset,dataset], ignore_index=True)
+
+        if data_shuffle:
+            df = shuffle(df)
+        client1.preprocess_data(df, csids)
         client1.prep_data()
-        client2.prep_data()
 
-        test_x = client2.x
-        test_y = client2.y
+        X = client1.x[80000:]
+        y = client1.y[80000:]
 
-        X = client1.x
-        y = client1.y
+        test_x = client1.x[:80000]
+        test_y = client1.y[:80000]
     return client1, X, y, test_x, test_y
