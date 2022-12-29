@@ -21,7 +21,7 @@ def set_data(selected_model ,csids=False, downsample = False, data_shuffle = Fal
 
         client1.preprocess_data(dataset, csids)
         if downsample:
-            client1.downsample_data(['Destination Port', 'Flow Duration', 'Total Fwd Packets', 'Total Backward Packets','Total Length of Fwd Packets'])
+            client1.downsample_data(['Flow IAT Max', 'Fwd IAT Max', 'Idle Max', 'Idle Mean','Fwd IAT Std', 'Flow IAT Std'])
 
 
         client1.prep_data()
@@ -67,7 +67,7 @@ def set_data(selected_model ,csids=False, downsample = False, data_shuffle = Fal
 
         client1.preprocess_data(df, False)
         if downsample:
-            client1.downsample_data(['sbytes','dbytes','sttl','dttl','spkts','dpkts'])
+            client1.downsample_data(['dwin','tcp','swin','udp','INT','ct_dst_src_ltm'])
 
         client1.prep_data()
 
