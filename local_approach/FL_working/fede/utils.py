@@ -1,4 +1,4 @@
-from local_approach.FL_working.client import Client
+from client import Client
 from sklearn.utils import shuffle
 import pandas as pd
 
@@ -56,7 +56,7 @@ def set_data(selected_model ,csids=False, downsample = False, data_shuffle = Fal
         
     else:
         dataset = client1.load_data("data/UNSW_NB15_train-set.csv")
-        test_dataset = client2.load_data("data/UNSW_NB15_test-set.csv")
+        test_dataset = client1.load_data("data/UNSW_NB15_test-set.csv")
         df = pd.concat([dataset,test_dataset], ignore_index=True)
 
 
@@ -65,10 +65,9 @@ def set_data(selected_model ,csids=False, downsample = False, data_shuffle = Fal
 
         clients = [client1, client2, client3, client4, client5]
 
-        client1.preprocess_data(df, csids)
+        client1.preprocess_data(df, False)
         if downsample:
             client1.downsample_data(['sbytes','dbytes','sttl','dttl','spkts','dpkts'])
-            client2.downsample_data(['sbytes','dbytes','sttl','dttl','spkts','dpkts'])
 
         client1.prep_data()
 
@@ -93,6 +92,13 @@ def set_data(selected_model ,csids=False, downsample = False, data_shuffle = Fal
 
         test_x = X[180000:]
         test_y = y[180000:]
+
+        # test_x = X[142000:180000]
+        # test_y = y[142000:180000]
+
+        # client5.x = X[180000:]
+        # client5.y = y[180000:]
+
 
         client2.feature_names = client1.feature_names
         client3.feature_names = client1.feature_names
@@ -143,7 +149,7 @@ def set_data_mock(selected_model ,csids=False, downsample = False):
 
 
 
-def centralized_data(selected_model ,csids=False, downsample = False, data_shuffle = False):
+def centralized_data(selected_model ,csids=False, data_shuffle = False):
     client1 = Client("node1","0.0.0.0", 5001, selected_model)
     client2 = Client("node2","0.0.0.0", 5001, selected_model)
     if csids:
