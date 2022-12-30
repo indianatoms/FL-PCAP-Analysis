@@ -1,11 +1,9 @@
-from crypt import methods
 import datetime
-from locale import currency
 from flask import request, jsonify
 import uuid
 from flaskapp.models import User, Model
 from flaskapp import app, db, bcrypt
-from flask import json, abort, make_response
+from flask import json, make_response
 from marshmallow import Schema, fields, ValidationError
 import numpy as np
 import jwt
@@ -80,6 +78,7 @@ def login():
 class ParametersSchema(Schema):
     intercept = fields.Float(required=True)
     coefs = fields.List(fields.Float(default=""))
+    dataset_size = fields.Integer(required=True)
 class ModelSchema(Schema):
     type = fields.String(required=True)
     model = fields.Nested(ParametersSchema)
@@ -315,11 +314,55 @@ def calcualte_global_model(current_user):
     for id in data["models_id"]:
         model = Model.query.get_or_404(id)
         sum_intercept = sum_intercept + model.model_parameters['intercept']
-        sum_coefs = +np.add(sum_coefs, model.model_parameters['coefs'])
+        sum_coefs = np.add(sum_coefs, model.model_parameters['coefs'])
         db.session.commit()
 
     avg_intercept = sum_intercept / len(data["models_id"])
     avg_coefs = sum_coefs / len(data["models_id"])
+
+    model_json = { "intercept": avg_intercept, "coefs":avg_coefs.tolist() }
+
+    model = Model(
+        model_parameters=model_json, model_type=model_type ,global_model=True, user_id=current_user.id
+    )
+    db.session.add(model)
+    db.session.commit()
+
+    response = app.response_class(
+        response=json.dumps(
+            {"intercept": avg_intercept, "bias": avg_coefs.tolist(), "id": model.id}
+        ),
+        status=200,
+        mimetype="application/json",
+    )
+    return response
+
+@app.route("/model/global/calculate/fedavg", methods=["GET"])  # only allow for admin
+@token_required
+def calcualte_fedavg_model(current_user):
+
+    if not current_user.admin:
+        return jsonify({'message':'Cannot perform that. Only and admin function.'})
+    
+    data = request.json
+    
+    model = Model.query.get_or_404(data["models_id"][0])
+    model_type = model.model_type
+
+    if model_type == "SGDClassifier" or model_type == "LogisticRegression":
+        sum_intercept = 0
+        sum_coefs = np.zeros(len(model.model_parameters['coefs']))
+        dataset_total = 0
+    
+    for id in data["models_id"]:
+        model = Model.query.get_or_404(id)
+        sum_intercept += model.model_parameters['intercept'] * model.model_parameters['dataset_size']
+        sum_coefs = np.add(sum_coefs, np.array(model.model_parameters['coefs']) * model.model_parameters['dataset_size']) 
+        dataset_total += model.model_parameters['dataset_size']
+        db.session.commit()
+
+    avg_intercept = sum_intercept / dataset_total
+    avg_coefs = sum_coefs / dataset_total
 
     model_json = { "intercept": avg_intercept, "coefs":avg_coefs.tolist() }
 

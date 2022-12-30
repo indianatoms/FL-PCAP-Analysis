@@ -64,6 +64,9 @@ class Client:
         count_class_0 = df_class_0.shape[0]
         count_class_1 = df_class_1.shape[0]
 
+        print(count_class_0)
+        print(count_class_1)
+
         if count_class_0/(count_class_0 + count_class_1) < 0.2:
             print(f'DOWNSAMLING {self.name}')
             df_class_1_under = df_class_1.sample(count_class_0)
@@ -80,7 +83,7 @@ class Client:
         indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
         return df[indices_to_keep].astype(np.float64)
 
-    def preprocess_data(self, df: pd.DataFrame, ciids=False):
+    def preprocess_data(self, df: pd.DataFrame, ciids=False, downsample = True):
         """Preprocess and split data into X and y. Where X are features and y is the packet label. 
         String gata are One Hot encoded."""
 
@@ -112,8 +115,8 @@ class Client:
             #             df[feature],
             #             df[feature].quantile(0.95),
             #         )
-
-            df = self.downsample(df)
+            if downsample:
+                df = self.downsample(df)
             X = df.iloc[:, :-1]
             feature_names = list(X.columns)
             X = X.to_numpy()
@@ -171,52 +174,18 @@ class Client:
         return pd.DataFrame(self.x, columns=self.feature_names)
 
 
-    def init_empty_model(self, learning_rate, epochs = 200):
+    def init_empty_model(self, learning_rate, epochs = 20):
         if self.model_name == Supported_modles.SGD_classifier:
             self.model = SGDClassifier(
                 loss="log",
-                learning_rate="constant",
-                eta0=learning_rate,
-                alpha=0.01
+                alpha=learning_rate,
+                penalty='l1',
+                max_iter=epochs
             )
-        if self.model_name == Supported_modles.MLP_classifier:
-            self.model = MLPClassifier(solver='sgd', learning_rate = 'adaptive', max_iter = epochs)
-            self.model.intercepts_ = [
-                np.zeros(256),
-                np.zeros(25),
-                np.zeros(1),
-            ]
-            self.model.coefs_ = [
-                np.zeros((self.x.shape[1], 256)),
-                np.zeros((256, 25)),
-                np.zeros((25, 1)),
-            ]
-            self.model.n_layers_ = 3
-            self.model.out_activation_ = 'logistic'
-            self.model.n_outputs_=1
-            self.model.classes_ = np.array([0, 1])
-
         if self.model_name == Supported_modles.logistic_regression:
             self.model = LogisticRegression(
-                C=1.0,
-                class_weight=None,
-                dual=False,
-                fit_intercept=True,
-                intercept_scaling=1,
-                l1_ratio=None,
-                max_iter=100,
-                multi_class="auto",
-                n_jobs=None,
-                penalty="l2",
-                random_state=13,
-                solver="lbfgs",
-                tol=0.0001,
-                verbose=0,
-                warm_start=False,
-            )
-        if self.model_name == Supported_modles.gradient_boosting_classifier:
-            self.model = GradientBoostingClassifier(
-                n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0
+                C=100000,
+                penalty="l2"
             )
         if self.model_name == Supported_modles.NN_classifier:
             self.model = Net2nn(self.x.shape[1])
@@ -260,8 +229,11 @@ class Client:
             self.model.fit(x, y)
 
 
-    def partial_train_model(self):
-        self.model.partial_fit(self.x, self.y, classes=np.array([0, 1]))
+    def partial_train_model(self, x=None, y=None):
+        if x is None:
+            x = self.x
+            y = self.y
+        self.model.partial_fit(x, y, classes=np.array([0, 1]))
 
     def train_local_agent(self, X, y, epochs, class_weight):
         if self.model_name == Supported_modles.SGD_classifier:
@@ -269,9 +241,6 @@ class Client:
                 self.model.partial_fit(
                     X, y, classes=np.unique(y), sample_weight=class_weight
                 )
-        if self.model_name == Supported_modles.MLP_classifier:
-            for _ in range(0, epochs):
-                    self.model.partial_fit(X, y, classes=np.array([0, 1]))
         if self.model_name == Supported_modles.NN_classifier:
                 x_train = np.float32(X)  
                 y_train = np.float32(y)
@@ -382,6 +351,8 @@ class Client:
             self.optimizer.zero_grad()  #what is going on over here
             loss.backward()
             self.optimizer.step()
+            # if _ % 10 == 0:
+            #     print(loss)
     
 
     def load_global_model(self, model):
