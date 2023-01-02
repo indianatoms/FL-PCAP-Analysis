@@ -26,7 +26,7 @@ import argparse
 
 
 class Client:
-    def __init__(self, name, server_address, server_port, model_name):
+    def __init__(self, name, server_address, server_port, model_name, conn):
         self.name = name
         self.server_address = server_address
         self.server_port = server_port
@@ -40,6 +40,10 @@ class Client:
         self.y_test = None
         self.feature_names = None
         self.token = None
+        if conn == "socket":
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+
         print(f'Creating {self.name}.')
 
     def load_data(self, path: str, csids=False) -> pd.DataFrame:
@@ -272,52 +276,47 @@ class Client:
         if self.token == None:
             print('Need to login first.')
             return
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((self.server_address, self.server_port))
-
-            # Create an instance of ProcessData() to send to server.
-            # Pickle the object and send it to the server
-            data_string = pickle.dumps((self.token,data))
-            s.send(data_string)
-            print("Data Sent to Server")
+        # Create an instance of ProcessData() to send to server.
+        # Pickle the object and send it to the server
+        data_string = pickle.dumps((self.token,data))
+        self.socket.send(data_string)
+        print("Data Sent to Server")
 
     def wait_for_data(self):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        # with conn:
-        #     print(f"Connected by {addr}")
-            s.connect((self.server_address, self.server_port))
-            data = b""
-            while True:
-                packet = s.recv(4096)
-                if not packet:
-                    break
-                data += packet
-            d = pickle.loads(data)
-            return d
+        data = b""
+        # while True:
+        packet = self.socket.recv(4096)
+            # if not packet:
+            #     break
+        data += packet
+        d = pickle.loads(data)
+        return d
+
         
     def login_socket(self):
         HOST = self.server_address
         PORT = self.server_port
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((HOST, PORT))
-            response = s.recv(2048)
-            # Input UserName
-            name = input(response.decode())	
-            s.send(str.encode(name))
-            response = s.recv(2048)
-            # Input Password
-            password = input(response.decode())	
-            s.send(str.encode(password))
-            ''' Response : Status of Connection :
-                1 : Registeration successful 
-                2 : Connection Successful
-                3 : Login Failed
-            '''
-            # Receive response 
-            response = s.recv(2048)
-            response = response.decode()
 
-            self.token = response
+        self.socket.connect((HOST, PORT))
+        response = self.socket.recv(2048)
+        # Input UserName
+        name = input(response.decode())	
+        self.socket.send(str.encode(name))
+        response = self.socket.recv(2048)
+        # Input Password
+        password = input(response.decode())	
+        self.socket.send(str.encode(password))
+        ''' Response : Status of Connection :
+            1 : Registeration successful 
+            2 : Connection Successful
+            3 : Login Failed
+        '''
+        # Receive response 
+        response = self.socket.recv(2048)
+        response = response.decode()
+
+        self.token = response
+
 
     def login_api(self):
         HOST = self.server_address
@@ -430,7 +429,7 @@ if __name__ == "__main__":
     else:
         raise ValueError("Only: NN, SGR or LR are support, specify one of those.")
 
-    client = Client(args.name, args.address, args.port, supported_model)
+    client = Client(args.name, args.address, args.port, supported_model, args.conn)
     
     dataset = client.load_data(args.data, True)
     client.preprocess_data(dataset, True)
@@ -452,21 +451,23 @@ if __name__ == "__main__":
             # client.load_global_model(global_model)
             client.get_global_model()
         if cmd == 'send':
-            # for round in range (10):
-            #     print(f'Staring round: {round}')
-            #     print(f'Training model')
-            #     start_time = time.time()
-            #     data = client.fed_avg_prepare_data(epochs=10)
-            #     execution_time = time.time() - start_time
-            #     print(f'{execution_time} seconds')
-            #     sleep(5 - execution_time)
-            #     print(f'Sending Data')
-            #     client.send_data_to_server(data)
-            #     sleep(5)
-            #     print(f'Wait for server')
-            #     global_model = client.wait_for_data()
-            #     client.load_global_model(global_model)
-            #     print(client.test_model_f1())
+            if args.conn == "socket":
+                for round in range (3):
+                    print(f'Staring round: {round}')
+                    print(f'Training model')
+                    start_time = time.time()
+                    data = client.fed_avg_prepare_data(epochs=10)
+                    execution_time = time.time() - start_time
+                    print(f'{execution_time} seconds')
+                    sleep(5 - execution_time)
+                    print(f'Sending Data')
+                    client.send_data_to_server(data)
+                    print(f'Wait for server')
+                    global_model = client.wait_for_data()
+                    client.load_global_model(global_model)
+                    print(client.model.intercept_)
+                    print(client.test_model_f1())
+        if cmd == 'local':
             if args.conn == "api":
                 data = client.fed_avg_prepare_data(epochs=10)
                 client.send_local_model(data)
