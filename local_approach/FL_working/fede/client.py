@@ -273,12 +273,7 @@ class Client:
         return fed
 
     def send_data_to_server(self, data):
-        if self.token == None:
-            print('Need to login first.')
-            return
-        # Create an instance of ProcessData() to send to server.
-        # Pickle the object and send it to the server
-        data_string = pickle.dumps((self.token,data))
+        data_string = pickle.dumps((data))
         print(f'Size of model = {sys.getsizeof(data_string)}')
         self.socket.send(data_string)
         print("Data Sent to Server")
@@ -320,10 +315,6 @@ class Client:
             3 : Login Failed
         '''
         # Receive response 
-        response = self.socket.recv(2048)
-        response = response.decode()
-
-        self.token = response
 
 
     def login_api(self):

@@ -4,7 +4,6 @@ from supported_modles import Supported_modles
 import torch
 from sklearn.metrics import f1_score
 import time
-from token_expired_exception import TokenExpiredException
 import argparse
 
 class Fedavg:
@@ -18,7 +17,6 @@ class Fedavg:
         self.clients = []
         self.connections = []
         self.hashtable = None
-        self.secret = '5791628bb0b13ce0c676dfde280ba245'
         self.socket = None
 
         try:
@@ -60,33 +58,12 @@ class Fedavg:
             else:
         # If already existing user, check if the entered password is correct
                 if(self.hashtable[name] == password):
-                    token = jwt.encode(
-                    {
-                        "name": name,
-                        "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
-                    },
-                        self.secret
-                    )
-                    print('Connected : ',token)
-                    connection.send(token.encode())
                     self.connections.append(connection)
+                    #Save connection for the future
                 else:
                     connection.send(str.encode('False')) # Response code for login failed
                     print('Connection denied : ',name)
                     connection.close()
-
-    def check_token(self, token):
-            try:
-                data = jwt.decode(token, self.secret, algorithms=['HS256'])
-                current_user = data['name']
-                time = data['exp']
-            except:
-                return False
-            # if int(time) < int(time.time()):
-            #     raise TokenExpiredException
-
-            print(current_user)
-            return True
 
 
     def init_global_model(self, model):
@@ -203,9 +180,7 @@ class Fedavg:
             
         d = pickle.loads(data)
 
-        token = d[0]
-        self.check_token(token)
-        struct = d[1]
+        struct = d
 
         self.clients.append(struct)
         # connection.close()
