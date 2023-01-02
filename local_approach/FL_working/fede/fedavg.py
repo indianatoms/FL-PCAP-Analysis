@@ -4,7 +4,7 @@ from supported_modles import Supported_modles
 import torch
 from sklearn.metrics import f1_score
 import time
-from token_expired_exception import TokenExpiredException
+import argparse
 
 class Fedavg:
     def __init__(self, name, model_name):
@@ -15,8 +15,8 @@ class Fedavg:
         self.ip = '127.0.0.1'
         self.port = 5001
         self.clients = []
+        self.connections = []
         self.hashtable = None
-        self.secret = '5791628bb0b13ce0c676dfde280ba245'
         self.socket = None
 
         try:
@@ -58,33 +58,12 @@ class Fedavg:
             else:
         # If already existing user, check if the entered password is correct
                 if(self.hashtable[name] == password):
-                    token = jwt.encode(
-                    {
-                        "name": name,
-                        "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
-                    },
-                        self.secret
-                    )
-                    print('Connected : ',token)
-                    connection.send(token.encode())
-                    connection.close()
+                    self.connections.append(connection)
+                    #Save connection for the future
                 else:
                     connection.send(str.encode('False')) # Response code for login failed
                     print('Connection denied : ',name)
                     connection.close()
-
-    def check_token(self, token):
-            try:
-                data = jwt.decode(token, self.secret, algorithms=['HS256'])
-                current_user = data['name']
-                time = data['exp']
-            except:
-                return False
-            # if int(time) < int(time.time()):
-            #     raise TokenExpiredException
-
-            print(current_user)
-            return True
 
 
     def init_global_model(self, model):
@@ -183,38 +162,56 @@ class Fedavg:
             
 
     def wait_for_data(self,connection):
+        counter = 0
+        if self.model_name == Supported_modles.NN_classifier:
+            BUFF_LIMIT = 37
+        else:
+            BUFF_LIMIT = 1
         print('Waitiing for a Connection...')
         data = b""
         while True:
-            packet = connection.recv(4096)
-            if not packet:
-                break
+            packet = connection.recv(4096) 
+            counter +=1   
+            print(counter)
             data += packet
+            if counter == BUFF_LIMIT:
+                print("Broken")
+                break
+            
         d = pickle.loads(data)
 
-        token = d[0]
-        self.check_token(token)
-        struct = d[1]
+        struct = d
 
         self.clients.append(struct)
-        connection.close()
+        # connection.close()
 
     def send_request(self, connection, msg):
         print('Waitiing for a Connection...')
         data_string = pickle.dumps(msg)
         connection.send(data_string)
-        connection.close()
+        # connection.close()
         print("Data Sent to Server")
 
 
 
 # Start Flower server for five rounds of federated learning
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Run client and get its ip and port.')
+    parser.add_argument('--model', dest='model', type=str, help='Specify model type: NN, LR, SGD')
+    args = parser.parse_args()
 
-    NUMBER_OF_CLIENTS = 3
-    NUMBER_OF_ROUNDS = 10
+
+    NUMBER_OF_CLIENTS = 2
+    NUMBER_OF_ROUNDS = 3
     
-    selected_model = Supported_modles.NN_classifier
+    if args.model == "NN":
+        selected_model = Supported_modles.NN_classifier
+    if args.model == "SGD":
+        selected_model = Supported_modles.SGD_classifier
+    if args.model == "LR":
+        selected_model = Supported_modles.logistic_regression
+    
+    
     fedavg = Fedavg("global", selected_model)
     ThreadCount = 0
     threads = []
@@ -238,7 +235,6 @@ if __name__ == "__main__":
         if x.is_alive():
             x.terminate()
             x.join()
-
     
     epochs = 10
     max_score = 0
@@ -255,22 +251,19 @@ if __name__ == "__main__":
         fedavg.clients = []
         dataset_size = 0
         
-        while True:
-            Client, address = fedavg.socket.accept()
+        for conn in fedavg.connections:
             client_handler = threading.Thread(
                 target=fedavg.wait_for_data,
-                args=(Client,)  
+                args=(conn,)  
             )
             client_handler.start()
             threads.append(client_handler)
-            if len(threads) == NUMBER_OF_CLIENTS:
-                break
 
         # Wait for all of them to finish
         for x in threads:
             x.join()
         
-        applicable_clients = random.sample(fedavg.clients,len(fedavg.clients))
+        applicable_clients = fedavg.clients #random.sample(fedavg.clients,len(fedavg.clients))
 
         if round == 0:
             fedavg.model = applicable_clients[0].model
@@ -290,11 +283,10 @@ if __name__ == "__main__":
         fedavg.update_global_model(applicable_models, round_weights, selected_model)
 
         threads = []
-        while True:
-            Client, address = fedavg.socket.accept()
+        for conn in fedavg.connections:
             client_handler = threading.Thread(
                 target=fedavg.send_request,
-                args=(Client,fedavg.model)  
+                args=(conn,fedavg.model)  
             )
             client_handler.start()
             threads.append(client_handler)
