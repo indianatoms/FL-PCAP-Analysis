@@ -19,8 +19,8 @@ import torch
 from torch import nn
 from time import sleep
 import time
-from copy import deepcopy
-
+import requests
+from requests.auth import HTTPBasicAuth
 
 import argparse
 
@@ -105,16 +105,6 @@ class Client:
 
             df = self.clean_dataset(df)
 
-            # for feature in df.columns:
-            #     if (
-            #         df_numeric[feature].max() > 10 * df_numeric[feature].median()
-            #         and df_numeric[feature].max() > 10
-            #     ):
-            #         df[feature] = np.where(
-            #             df[feature] < df[feature].quantile(0.95),
-            #             df[feature],
-            #             df[feature].quantile(0.95),
-            #         )
             if downsample:
                 df = self.downsample(df)
             X = df.iloc[:, :-1]
@@ -127,22 +117,10 @@ class Client:
             list_drop = ["id", "attack_cat", "label"]
             df.drop(list_drop, axis=1, inplace=True)
 
-            # for feature in df_numeric.columns:
-            #     if (
-            #         df_numeric[feature].max() > 10 * df_numeric[feature].median()
-            #         and df_numeric[feature].max() > 10
-            #     ):
-            #         df[feature] = np.where(
-            #             df[feature] < df[feature].quantile(0.95),
-            #             df[feature],
-            #             df[feature].quantile(0.95),
-            #         )
-            
-
             df_cat = df.select_dtypes(exclude=[np.number])
 
             for feature in df_cat.columns:
-                if df_cat[feature].nunique() > 6:
+                if df_cat[feature].nunique() > 1:
                     df[feature] = np.where(
                         df[feature].isin(df[feature].value_counts().head().index),
                         df[feature],
@@ -155,7 +133,7 @@ class Client:
                 df = df.drop(feature,axis = 1)
                 # Join the encoded df
                 df = df.join(one_hot)
-
+            
             feature_names = list(df.columns)
             feature_names[45] = "service_not_determined"
             X = df.to_numpy()
@@ -174,11 +152,11 @@ class Client:
         return pd.DataFrame(self.x, columns=self.feature_names)
 
 
-    def init_empty_model(self, learning_rate, epochs = 20):
+    def init_empty_model(self, epochs = 20):
         if self.model_name == Supported_modles.SGD_classifier:
             self.model = SGDClassifier(
                 loss="log",
-                alpha=learning_rate,
+                alpha=0.001,
                 penalty='l1',
                 max_iter=epochs
             )
@@ -189,7 +167,7 @@ class Client:
             )
         if self.model_name == Supported_modles.NN_classifier:
             self.model = Net2nn(self.x.shape[1])
-            self.optimizer = torch.optim.SGD(self.model.parameters(), lr=learning_rate, momentum=0.9)
+            self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.1, momentum=0.9)
             self.criterion = nn.CrossEntropyLoss()
             # self.model.fc1.weight.data.fill_(0.02)
             # self.model.fc2.weight.data.fill_(0.02)
@@ -277,7 +255,7 @@ class Client:
         return f1_score(y_test, y_hat, average="binary")
 
     def fed_avg_prepare_data(self, epochs):
-        X_train, X_test, y_train, y_test = self.split_data(0.8)
+        X_train, X_test, y_train, y_test = self.split_data(0.9)
 
         sample_weights = compute_sample_weight("balanced", y=y_train)
 
@@ -317,7 +295,7 @@ class Client:
             d = pickle.loads(data)
             return d
         
-    def login(self):
+    def login_socket(self):
         HOST = self.server_address
         PORT = self.server_port
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -340,6 +318,19 @@ class Client:
             response = response.decode()
 
             self.token = response
+
+    def login_api(self):
+        HOST = self.server_address
+        PORT = self.server_port
+
+        api_url = 'http://' + str(HOST) + ':' + str(PORT) + '/login'
+
+        login = 'admin'#input('login:')
+        password = 'admin'#input('password:')
+
+        response = requests.get(api_url, auth=HTTPBasicAuth(login, password))
+        self.token = response.json()['token']
+        print('loged in succesfully!')
 
     def train(self, x, y, num_epochs):
         self.model.train()
@@ -367,51 +358,122 @@ class Client:
         else:
             self.model = model
 
+    def get_global_model(self):
+        HOST = self.server_address
+        PORT = self.server_port
+
+        api_url = 'http://' + str(HOST) + ':' + str(PORT) + '/model/global'
+
+        headers = {'x-access-token': self.token, 'Accept' : 'application/json', 'Content-Type' : 'application/json'}
+        response = requests.get(api_url, headers = headers)
+
+        resp = response.json()
+
+        if self.model_name == Supported_modles.SGD_classifier or self.model_name == Supported_modles.logistic_regression:
+            self.model.intercept_[0] = np.array(resp['models']['intercept'])
+            self.model.coef_[0] = np.array(resp['models']['coefs'])
+        
+        if self.model_name == Supported_modles.NN_classifier:
+            self.model.fc1.weight.data = torch.Tensor(np.array(resp['models']['coefs'][0]))
+            self.model.fc2.weight.data = torch.Tensor(np.array(resp['models']['coefs'][1]))
+            self.model.fc3.weight.data = torch.Tensor(np.array(resp['models']['coefs'][2]))
+            self.model.fc1.bias.data = torch.Tensor(np.array(resp['models']['intercept'][0]))
+            self.model.fc2.bias.data = torch.Tensor(np.array(resp['models']['intercept'][1]))
+            self.model.fc3.bias.data = torch.Tensor(np.array(resp['models']['intercept'][2]))
+        
+
+    def send_local_model(self, fed):
+        HOST = self.server_address
+        PORT = self.server_port
+        api_url = 'http://' + str(HOST) + ':' + str(PORT) + '/model'
+
+        headers = {'x-access-token': self.token, 'Accept' : 'application/json', 'Content-Type' : 'application/json'}
+        if self.model_name == Supported_modles.SGD_classifier or self.model_name == Supported_modles.logistic_regression:
+            json_data = {"type":self.model_name.value,"model": { "intercept": fed.model.intercept_[0], "coefs":fed.model.coef_[0].tolist(), "dataset_size":fed.dataset_size} }
+        elif self.model_name == Supported_modles.NN_classifier:  
+            json_data = {"type":self.model_name.value,"model": { 
+            "intercept": [
+                fed.model.fc1.bias.clone().detach().numpy().tolist(),
+                fed.model.fc2.bias.clone().detach().numpy().tolist(),
+                fed.model.fc3.bias.clone().detach().numpy().tolist()
+            ], 
+            "coefs": [
+                fed.model.fc1.weight.clone().detach().numpy().tolist(),
+                fed.model.fc2.weight.clone().detach().numpy().tolist(),
+                fed.model.fc3.weight.clone().detach().numpy().tolist(),   
+            ], 
+            "dataset_size":fed.dataset_size} }
+
+        response = requests.post(api_url, headers = headers, json=json_data)
+        print(response.status_code)
+        print(response.text)
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run client and get its ip and port.')
     parser.add_argument('--name', dest='name' , type=str, help='client name')
     parser.add_argument('--port', dest='port' , type=int, help='port on which socket will run')
     parser.add_argument('--address', dest='address', type=str, help='ip on which socket will run')
-    parser.add_argument('--data', dest='data', type=str, help='ip on which socket will run')
+    parser.add_argument('--data', dest='data', type=str, help='path to data')
+    parser.add_argument('--conn', dest='conn', type=str, help='Use either socket or api')
+    parser.add_argument('--model', dest='model', type=str, help='Specify model type: NN, LR, SGD')
 
     args = parser.parse_args()
 
-    client = Client(args.name, args.address, args.port, Supported_modles.NN_classifier)
-    
-    dataset1 = client.load_data(args.data, True)
-    client.preprocess_data(dataset1, True)
-    client.prep_data()
-    client.x, client.x_test, client.y, client.y_test = client.split_data(0.3)
-    client.init_empty_model(0.01)
+    if args.model == "NN":
+        supported_model = Supported_modles.NN_classifier
+    elif args.model == "SGD":
+        supported_model = Supported_modles.SGD_classifier
+    elif args.model == "LR":
+        supported_model = Supported_modles.logistic_regression
+    else:
+        raise ValueError("Only: NN, SGR or LR are support, specify one of those.")
 
+    client = Client(args.name, args.address, args.port, supported_model)
+    
+    dataset = client.load_data(args.data, True)
+    client.preprocess_data(dataset, True)
+    client.prep_data()
+    client.x, client.x_test, client.y, client.y_test = client.split_data(0.1)
+    client.init_empty_model()
+    
     while True:
         cmd = input("stop, login, load, local, (reset) model, score or send? ")
         if cmd == 'stop':
             break
         if cmd == 'login':
-            client.login()
+            if args.conn == "api":
+                client.login_api()
+            if args.conn == "socket":
+                client.login_socket()
         if cmd == 'load':
-            global_model = client.wait_for_data()
-            client.load_global_model(global_model)
+            # global_model = client.wait_for_data()
+            # client.load_global_model(global_model)
+            client.get_global_model()
         if cmd == 'send':
-            for round in range (10):
-                print(f'Staring round: {round}')
-                print(f'Training model')
-                start_time = time.time()
+            # for round in range (10):
+            #     print(f'Staring round: {round}')
+            #     print(f'Training model')
+            #     start_time = time.time()
+            #     data = client.fed_avg_prepare_data(epochs=10)
+            #     execution_time = time.time() - start_time
+            #     print(f'{execution_time} seconds')
+            #     sleep(5 - execution_time)
+            #     print(f'Sending Data')
+            #     client.send_data_to_server(data)
+            #     sleep(5)
+            #     print(f'Wait for server')
+            #     global_model = client.wait_for_data()
+            #     client.load_global_model(global_model)
+            #     print(client.test_model_f1())
+            if args.conn == "api":
                 data = client.fed_avg_prepare_data(epochs=10)
-                execution_time = time.time() - start_time
-                print(f'{execution_time} seconds')
-                sleep(5 - execution_time)
-                print(f'Sending Data')
-                client.send_data_to_server(data)
-                sleep(5)
-                print(f'Wait for server')
-                global_model = client.wait_for_data()
-                client.load_global_model(global_model)
-                print(client.test_model_f1())
+                client.send_local_model(data)
         if cmd == 'score':
             print(client.test_model_f1())
         if cmd == 'local':
             client.train_model(epochs = 50)
         if cmd == 'reset':
-            client.init_empty_model(0.01)
+            client.init_empty_model()
+        

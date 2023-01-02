@@ -221,14 +221,14 @@ def get_all_models(current_user):
 def add_model(current_user):
 
     data = request.json
-    schema = ModelSchema()
+    # schema = ModelSchema()
 
-    try:
-        # Validate request body against schema data types
-        schema.load(data)
-    except ValidationError as err:
-        # Return a nice message if validation fails
-        return jsonify(err.messages), 400
+    # try:
+    #     # Validate request body against schema data types
+    #     schema.load(data)
+    # except ValidationError as err:
+    #     # Return a nice message if validation fails
+    #     return jsonify(err.messages), 400
 
     model = Model(
         model_type=data["type"],
@@ -304,7 +304,7 @@ def display_models(current_user, user_public_id):
 def calcualte_global_model(current_user):
 
     if not current_user.admin:
-        return jsonify({'message':'Cannot perform that. Only and admin function.'})
+        return jsonify({'message':'Cannot perform that. Only an admin function.'})
     
     data = request.json
     sum_intercept = 0
@@ -353,18 +353,53 @@ def calcualte_fedavg_model(current_user):
         sum_intercept = 0
         sum_coefs = np.zeros(len(model.model_parameters['coefs']))
         dataset_total = 0
-    
-    for id in data["models_id"]:
-        model = Model.query.get_or_404(id)
-        sum_intercept += model.model_parameters['intercept'] * model.model_parameters['dataset_size']
-        sum_coefs = np.add(sum_coefs, np.array(model.model_parameters['coefs']) * model.model_parameters['dataset_size']) 
-        dataset_total += model.model_parameters['dataset_size']
-        db.session.commit()
+    if model_type == "SGDClassifier" or model_type == "LogisticRegression":
+        for id in data["models_id"]:
+            model = Model.query.get_or_404(id)
+            sum_intercept += model.model_parameters['intercept'] * model.model_parameters['dataset_size']
+            sum_coefs = np.add(sum_coefs, np.array(model.model_parameters['coefs']) * model.model_parameters['dataset_size']) 
+            dataset_total += model.model_parameters['dataset_size']
 
-    avg_intercept = sum_intercept / dataset_total
-    avg_coefs = sum_coefs / dataset_total
+        avg_intercept = sum_intercept / dataset_total
+        avg_coefs = sum_coefs / dataset_total
 
-    model_json = { "intercept": avg_intercept, "coefs":avg_coefs.tolist() }
+        model_json = { "intercept": avg_intercept, "coefs":avg_coefs.tolist() }
+
+    if model_type == "NeuralNetworkClassifier":
+        fc1_bias = np.zeros(np.array(model.model_parameters['intercept'][0]).shape)
+        fc2_bias = np.zeros(np.array(model.model_parameters['intercept'][1]).shape)
+        fc3_bias = np.zeros(np.array(model.model_parameters['intercept'][2]).shape)
+
+        fc1_weights = np.zeros(np.array(model.model_parameters['coefs'][0]).shape)
+        fc2_weights = np.zeros(np.array(model.model_parameters['coefs'][1]).shape)
+        fc3_weights = np.zeros(np.array(model.model_parameters['coefs'][2]).shape)
+
+        dataset_total = 0
+
+    if model_type == "NeuralNetworkClassifier":
+        for id in data["models_id"]:
+            model = Model.query.get_or_404(id)
+
+            fc1_bias = np.array(model.model_parameters['intercept'][0]) * model.model_parameters['dataset_size'] 
+            fc2_bias = np.array(model.model_parameters['intercept'][1]) * model.model_parameters['dataset_size']
+            fc3_bias = np.array(model.model_parameters['intercept'][2]) * model.model_parameters['dataset_size']
+
+            fc1_weights = np.array(model.model_parameters['coefs'][0]) * model.model_parameters['dataset_size']
+            fc2_weights = np.array(model.model_parameters['coefs'][1]) * model.model_parameters['dataset_size']
+            fc3_weights = np.array(model.model_parameters['coefs'][2]) * model.model_parameters['dataset_size']
+
+            dataset_total += model.model_parameters['dataset_size']
+        
+        fc1_bias_avg = fc1_bias / dataset_total 
+        fc2_bias_avg = fc2_bias / dataset_total
+        fc3_bias_avg = fc3_bias / dataset_total
+
+        fc1_weight_avg = fc1_weights / dataset_total
+        fc2_weight_avg = fc2_weights / dataset_total
+        fc3_weight_avg = fc3_weights / dataset_total
+
+        model_json = { "intercept": [fc1_bias_avg.tolist(),fc2_bias_avg.tolist(),fc3_bias_avg.tolist()], "coefs": [fc1_weight_avg.tolist(), fc2_weight_avg.tolist(), fc3_weight_avg.tolist()] }
+
 
     model = Model(
         model_parameters=model_json, model_type=model_type ,global_model=True, user_id=current_user.id
@@ -374,7 +409,7 @@ def calcualte_fedavg_model(current_user):
 
     response = app.response_class(
         response=json.dumps(
-            {"intercept": avg_intercept, "bias": avg_coefs.tolist(), "id": model.id}
+            {"stauts": "model created succesfully", "id": model.id}
         ),
         status=200,
         mimetype="application/json",
@@ -386,6 +421,7 @@ def calcualte_fedavg_model(current_user):
 @token_required
 def get_global_model(current_user):
     model = Model.query.filter_by(global_model=True).first()
+    
     response = app.response_class(
         response=json.dumps({"models": model.model_parameters}),
         status=200,
