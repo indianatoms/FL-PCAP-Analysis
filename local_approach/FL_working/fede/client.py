@@ -11,6 +11,7 @@ from sklearn.metrics import accuracy_score, f1_score
 from sklearn.utils.class_weight import compute_sample_weight
 import numpy as np
 import random
+import sys
 from fed_transfer import Fed_Avg_Client
 from supported_modles import Supported_modles
 from network import Net2nn
@@ -42,7 +43,6 @@ class Client:
         self.token = None
         if conn == "socket":
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
 
         print(f'Creating {self.name}.')
 
@@ -279,16 +279,24 @@ class Client:
         # Create an instance of ProcessData() to send to server.
         # Pickle the object and send it to the server
         data_string = pickle.dumps((self.token,data))
+        print(f'Size of model = {sys.getsizeof(data_string)}')
         self.socket.send(data_string)
         print("Data Sent to Server")
 
     def wait_for_data(self):
         data = b""
-        # while True:
-        packet = self.socket.recv(4096)
-            # if not packet:
-            #     break
-        data += packet
+        counter = 0
+        if self.model_name == Supported_modles.NN_classifier:
+            BUFF_LIMIT = 37
+        else:
+            BUFF_LIMIT = 1
+        while True:
+            packet = self.socket.recv(4096)
+            counter +=1   
+            print(counter)
+            data += packet
+            if counter == BUFF_LIMIT:
+                break
         d = pickle.loads(data)
         return d
 
@@ -465,7 +473,7 @@ if __name__ == "__main__":
                     print(f'Wait for server')
                     global_model = client.wait_for_data()
                     client.load_global_model(global_model)
-                    print(client.model.intercept_)
+                    # print(client.model.intercept_)
                     print(client.test_model_f1())
         if cmd == 'local':
             if args.conn == "api":

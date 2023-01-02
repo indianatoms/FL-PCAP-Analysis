@@ -5,6 +5,7 @@ import torch
 from sklearn.metrics import f1_score
 import time
 from token_expired_exception import TokenExpiredException
+import argparse
 
 class Fedavg:
     def __init__(self, name, model_name):
@@ -184,14 +185,22 @@ class Fedavg:
             
 
     def wait_for_data(self,connection):
+        counter = 0
+        if self.model_name == Supported_modles.NN_classifier:
+            BUFF_LIMIT = 37
+        else:
+            BUFF_LIMIT = 1
         print('Waitiing for a Connection...')
         data = b""
-        # while True:
-        packet = connection.recv(4096)
-            # print('load ...')
-            # if not packet:
-            #     break
-        data += packet
+        while True:
+            packet = connection.recv(4096) 
+            counter +=1   
+            print(counter)
+            data += packet
+            if counter == BUFF_LIMIT:
+                print("Broken")
+                break
+            
         d = pickle.loads(data)
 
         token = d[0]
@@ -212,11 +221,22 @@ class Fedavg:
 
 # Start Flower server for five rounds of federated learning
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Run client and get its ip and port.')
+    parser.add_argument('--model', dest='model', type=str, help='Specify model type: NN, LR, SGD')
+    args = parser.parse_args()
+
 
     NUMBER_OF_CLIENTS = 2
     NUMBER_OF_ROUNDS = 3
     
-    selected_model = Supported_modles.SGD_classifier
+    if args.model == "NN":
+        selected_model = Supported_modles.NN_classifier
+    if args.model == "SGD":
+        selected_model = Supported_modles.SGD_classifier
+    if args.model == "LR":
+        selected_model = Supported_modles.logistic_regression
+    
+    
     fedavg = Fedavg("global", selected_model)
     ThreadCount = 0
     threads = []
