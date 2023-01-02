@@ -1,6 +1,7 @@
 from client import Client
 from sklearn.utils import shuffle
 import pandas as pd
+from pathlib import Path 
 
 # NODEs
 def set_data(selected_model ,csids=False, downsample = False, data_shuffle = False):
@@ -57,7 +58,12 @@ def set_data(selected_model ,csids=False, downsample = False, data_shuffle = Fal
     else:
         dataset = client1.load_data("data/UNSW_NB15_train-set.csv")
         test_dataset = client1.load_data("data/UNSW_NB15_test-set.csv")
+        print('test')
         df = pd.concat([dataset,test_dataset], ignore_index=True)
+        filepath = Path('folder/data/out.csv')  
+        filepath.parent.mkdir(parents=True, exist_ok=True)  
+        df.to_csv(filepath)  
+
 
 
         if data_shuffle:
@@ -110,40 +116,32 @@ def set_data(selected_model ,csids=False, downsample = False, data_shuffle = Fal
 
 
 def set_data_mock(selected_model ,csids=False, downsample = False):
-    client1 = Client("node1","0.0.0.0", 5001, selected_model)
-    client2 = Client("node2","0.0.0.0", 5001, selected_model)
-    client3 = Client("node3","0.0.0.0", 5001, selected_model)
+    client1 = Client("node1","127.0.0.1", 5000, selected_model)
+    client2 = Client("node2","127.0.0.1", 5000, selected_model)
+    client3 = Client("node3","127.0.0.1", 5000, selected_model)
 
-    if csids:
-#wed
-        # dataset1 = client1.load_data('datasets/Friday-DDosaa.csv', True)
-        # dataset2 = client2.load_data('datasets/Friday-DDosab.csv', True)
-        # dataset3 = client3.load_data('datasets/Friday-Morning.csv', True)
-        # dataset4 = client4.load_data('datasets/Friday-PortScanaa.csv', True)
-        # dataset5 = client5.load_data('datasets/Friday-PortScanab.csv', True)
-
-        #'Wednesday-workingHours.pcap_ISCX.csv'
-        #'Friday-WorkingHours-Morning.pcap_ISCX.csv'
-        dataset1 = client1.load_data('data/mock_testsaa.csv', True)
-        dataset2 = client1.load_data('data/mock_testsab.csv', True)
-        dataset3 = client1.load_data('datasets/mock_testsac.csv', True)
+    dataset1 = client1.load_data('data/newaa.csv', True)
+    dataset2 = client1.load_data('data/newab.csv', True)
+    dataset3 = client1.load_data('data/newac.csv', True)
 
 
-        #dataset = shuffle(dataset)
+    #dataset = shuffle(dataset)
 
-        clients = [client1, client2, client3]
+    clients = [client1, client2, client3]
 
-        client1.preprocess_data(dataset1, csids)
-        client2.preprocess_data(dataset2, csids)
-        client3.preprocess_data(dataset3, csids)
+    client1.preprocess_data(dataset1, csids)
+    client2.preprocess_data(dataset2, csids)
+    client3.preprocess_data(dataset3, csids)
 
-        client1.prep_data()
-        client2.prep_data()
-        client3.prep_data()
+    client1.prep_data()
+    client2.prep_data()
+    client3.prep_data()
 
-        client1.x, client1.x_test, client1.y, client1.y_test = client1.split_data(0.3)
-        client2.x, client2.x_test, client2.y, client2.y_test = client2.split_data(0.3)
-        client3.x, client3.x_test, client3.y, client3.y_test = client3.split_data(0.3)
+    client1.x, client1.x_test, client1.y, client1.y_test = client1.split_data(0.1)
+    client2.x, client2.x_test, client2.y, client2.y_test = client2.split_data(0.1)
+    client3.x, client3.x_test, client3.y, client3.y_test = client3.split_data(0.1)
+
+    clients = [client1, client2, client3]
 
     return clients
 
