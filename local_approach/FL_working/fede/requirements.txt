@@ -1,7 +1,6 @@
 numpy
 scikit-learn
-configparser
-PyJWT
 datetime
 argparse
 pandas
+torch
