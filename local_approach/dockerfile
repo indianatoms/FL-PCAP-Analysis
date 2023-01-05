@@ -15,9 +15,9 @@ RUN apt install -y git python3 iproute2 python3-pip vim iputils-ping && \
     apt clean
 
 COPY FL_working/fede fede 
-COPY FL_working/datasets datasets
 
 RUN pip install -r fede/requirements.txt
+WORKDIR /fede
 
 # Expose Port for the Application 
 EXPOSE 5001
