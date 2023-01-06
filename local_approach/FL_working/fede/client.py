@@ -271,30 +271,6 @@ class Client:
             self.name, dataset_size, self.model
         )
         return fed
-
-    def send_data_to_server(self, data):
-        data_string = pickle.dumps((data))
-        print(f'Size of model = {sys.getsizeof(data_string)}')
-        self.socket.send(data_string)
-        print("Data Sent to Server")
-
-    def wait_for_data(self):
-        data = b""
-        counter = 0
-        if self.model_name == Supported_modles.NN_classifier:
-            BUFF_LIMIT = 37
-        else:
-            BUFF_LIMIT = 1
-        while True:
-            packet = self.socket.recv(4096)
-            counter +=1   
-            print(counter)
-            data += packet
-            if counter == BUFF_LIMIT:
-                break
-        d = pickle.loads(data)
-        return d
-
         
     def login_socket(self):
         HOST = self.server_address
@@ -406,6 +382,59 @@ class Client:
         print(response.status_code)
         print(response.text)
 
+    def send_data_to_server(self, data):
+        data_string = pickle.dumps((data))
+        print(f'Size of model = {sys.getsizeof(data_string)}')
+        # self.socket.send(data_string)
+        send_msg(self.socket, data_string)
+        print("Data Sent to Server")
+
+    def wait_for_data(self):
+        # data = b""
+        # counter = 0
+        # if self.model_name == Supported_modles.NN_classifier:
+        #     BUFF_LIMIT = 37
+        # else:
+        #     BUFF_LIMIT = 1
+        # while True:
+        #     packet = self.socket.recv(4096)
+        #     counter +=1   
+        #     print(counter)
+        #     data += packet
+        #     if counter == BUFF_LIMIT:
+        #         break
+        data = recv_msg(self.socket)
+        d = pickle.loads(data)
+        return d
+
+
+
+import struct
+def recvall(sock, n):
+    # Helper function to recv n bytes or return None if EOF is hit
+    data = bytearray()
+    while len(data) < n:
+        packet = sock.recv(n - len(data))
+        if not packet:
+            return None
+        data.extend(packet)
+    return data
+
+def send_msg(sock, msg):
+    # Prefix each message with a 4-byte length (network byte order)
+    msg = struct.pack('>I', len(msg)) + msg
+    sock.sendall(msg)
+
+def recv_msg(sock):
+    # Read message length and unpack it into an integer
+    raw_msglen = recvall(sock, 4)
+    if not raw_msglen:
+        return None
+    msglen = struct.unpack('>I', raw_msglen)[0]
+    # Read the message data
+    return recvall(sock, msglen)
+
+
 
 
 if __name__ == "__main__":
@@ -451,7 +480,7 @@ if __name__ == "__main__":
             client.get_global_model()
         if cmd == 'send':
             if args.conn == "socket":
-                for round in range (3):
+                for round in range (10):
                     print(f'Staring round: {round}')
                     print(f'Training model')
                     start_time = time.time()

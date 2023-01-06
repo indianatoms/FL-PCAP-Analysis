@@ -4,6 +4,8 @@ from supported_modles import Supported_modles
 import torch
 from sklearn.metrics import f1_score
 import argparse
+import sys
+from client import Client
 
 class Fedavg:
     def __init__(self, name, model_name):
@@ -11,7 +13,7 @@ class Fedavg:
         self.model = None
         self.model_name = model_name
         self.accuracy = 0
-        self.ip = '127.0.0.1'
+        self.ip = '0.0.0.0'
         self.port = 5001
         self.clients = []
         self.connections = []
@@ -161,22 +163,24 @@ class Fedavg:
             
 
     def wait_for_data(self,connection):
-        counter = 0
-        if self.model_name == Supported_modles.NN_classifier:
-            BUFF_LIMIT = 37
-        else:
-            BUFF_LIMIT = 1
-        print('Waitiing for a Connection...')
-        data = b""
-        while True:
-            packet = connection.recv(4096) 
-            counter +=1   
-            print(counter)
-            data += packet
-            if counter == BUFF_LIMIT:
-                print("Broken")
-                break
-            
+        # counter = 0
+        # if self.model_name == Supported_modles.NN_classifier:
+        #     BUFF_LIMIT = 50
+        # else:
+        #     BUFF_LIMIT = 1
+        # print('Waitiing for a Connection...')
+        # data = b""
+        # while True:
+        #     packet = connection.recvall(4096) 
+        #     counter +=1   
+        #     print(counter)
+        #     data += packet
+        #     if counter == BUFF_LIMIT:
+        #         print("Broken")
+        #         break
+        #     print(len(packet))
+
+        data = recv_msg(connection)
         d = pickle.loads(data)
 
         struct = d
@@ -187,9 +191,39 @@ class Fedavg:
     def send_request(self, connection, msg):
         print('Waitiing for a Connection...')
         data_string = pickle.dumps(msg)
-        connection.send(data_string)
+        print(f'Size of model = {sys.getsizeof(data_string)}')
+        #connection.send(data_string)
+        send_msg(connection,data_string)
         # connection.close()
         print("Data Sent to Server")
+    
+
+import struct
+def recvall(sock, n):
+    # Helper function to recv n bytes or return None if EOF is hit
+    data = bytearray()
+    while len(data) < n:
+        packet = sock.recv(n - len(data))
+        if not packet:
+            return None
+        data.extend(packet)
+    return data
+
+def send_msg(sock, msg):
+    # Prefix each message with a 4-byte length (network byte order)
+    msg = struct.pack('>I', len(msg)) + msg
+    sock.sendall(msg)
+
+def recv_msg(sock):
+    # Read message length and unpack it into an integer
+    raw_msglen = recvall(sock, 4)
+    if not raw_msglen:
+        return None
+    msglen = struct.unpack('>I', raw_msglen)[0]
+    # Read the message data
+    return recvall(sock, msglen)
+
+
 
 
 
@@ -200,8 +234,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
 
-    NUMBER_OF_CLIENTS = 2
-    NUMBER_OF_ROUNDS = 3
+    NUMBER_OF_CLIENTS = 1
+    NUMBER_OF_ROUNDS = 10
     
     if args.model == "NN":
         selected_model = Supported_modles.NN_classifier
@@ -210,7 +244,13 @@ if __name__ == "__main__":
     if args.model == "LR":
         selected_model = Supported_modles.logistic_regression
     
-    
+    client1 = Client("node1","0.0.0.0", 5001, selected_model, "socket")
+    dataset = client1.load_data('../data/xaa.csv', True)
+    client1.preprocess_data(dataset, True)
+    client1.prep_data()
+    test_x = client1.x
+    test_y = client1.y
+
     fedavg = Fedavg("global", selected_model)
     ThreadCount = 0
     threads = []
@@ -280,6 +320,11 @@ if __name__ == "__main__":
 
         round_weights = np.array(round_weights) / dataset_size
         fedavg.update_global_model(applicable_models, round_weights, selected_model)
+
+        client1.model = fedavg.model
+        print('----------------------------------------')
+        print(client1.test_model_f1(test_y,test_x))
+        print('----------------------------------------')
 
         threads = []
         for conn in fedavg.connections:
