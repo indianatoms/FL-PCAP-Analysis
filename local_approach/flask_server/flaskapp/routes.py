@@ -380,13 +380,13 @@ def calcualte_fedavg_model(current_user):
         for id in data["models_id"]:
             model = Model.query.get_or_404(id)
 
-            fc1_bias = np.array(model.model_parameters['intercept'][0]) * model.model_parameters['dataset_size'] 
-            fc2_bias = np.array(model.model_parameters['intercept'][1]) * model.model_parameters['dataset_size']
-            fc3_bias = np.array(model.model_parameters['intercept'][2]) * model.model_parameters['dataset_size']
+            fc1_bias += np.array(model.model_parameters['intercept'][0]) * model.model_parameters['dataset_size'] 
+            fc2_bias += np.array(model.model_parameters['intercept'][1]) * model.model_parameters['dataset_size']
+            fc3_bias += np.array(model.model_parameters['intercept'][2]) * model.model_parameters['dataset_size']
 
-            fc1_weights = np.array(model.model_parameters['coefs'][0]) * model.model_parameters['dataset_size']
-            fc2_weights = np.array(model.model_parameters['coefs'][1]) * model.model_parameters['dataset_size']
-            fc3_weights = np.array(model.model_parameters['coefs'][2]) * model.model_parameters['dataset_size']
+            fc1_weights += np.array(model.model_parameters['coefs'][0]) * model.model_parameters['dataset_size']
+            fc2_weights += np.array(model.model_parameters['coefs'][1]) * model.model_parameters['dataset_size']
+            fc3_weights += np.array(model.model_parameters['coefs'][2]) * model.model_parameters['dataset_size']
 
             dataset_total += model.model_parameters['dataset_size']
         
