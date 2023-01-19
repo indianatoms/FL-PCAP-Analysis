@@ -87,7 +87,7 @@ class Client:
         indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
         return df[indices_to_keep].astype(np.float64)
 
-    def preprocess_data(self, df: pd.DataFrame, ciids=False, downsample = True):
+    def preprocess_data(self, df: pd.DataFrame, ciids=False, downsample = False):
         """Preprocess and split data into X and y. Where X are features and y is the packet label. 
         String gata are One Hot encoded."""
 
@@ -354,7 +354,35 @@ class Client:
             self.model.fc1.bias.data = torch.Tensor(np.array(resp['models']['intercept'][0]))
             self.model.fc2.bias.data = torch.Tensor(np.array(resp['models']['intercept'][1]))
             self.model.fc3.bias.data = torch.Tensor(np.array(resp['models']['intercept'][2]))
-        
+    
+    def calcualte_global_model(self):
+        HOST = self.server_address
+        PORT = self.server_port
+
+        api_url = 'http://' + str(HOST) + ':' + str(PORT) + '/model/' + str(4)
+        headers = {'x-access-token': self.token, 'Accept' : 'application/json', 'Content-Type' : 'application/json'}
+        response = requests.delete(api_url, headers = headers)
+        print(response.status_code)
+        print(response.text)
+
+        api_url = 'http://' + str(HOST) + ':' + str(PORT) + '/model/global/calculate/fedavg'
+        json_data = {
+            "models_id":[1,2,3]
+        }
+
+        headers = {'x-access-token': self.token, 'Accept' : 'application/json', 'Content-Type' : 'application/json'}
+        response = requests.get(api_url, headers = headers, json = json_data)
+
+        print(response.status_code)
+        print(response.text)
+
+        for x in [1,2,3]:
+            api_url = 'http://' + str(HOST) + ':' + str(PORT) + '/model/' + str(x)
+            headers = {'x-access-token': self.token, 'Accept' : 'application/json', 'Content-Type' : 'application/json'}
+            response = requests.delete(api_url, headers = headers)
+            print(response.status_code)
+            print(response.text)
+
 
     def send_local_model(self, fed):
         HOST = self.server_address
@@ -495,7 +523,7 @@ if __name__ == "__main__":
                     client.load_global_model(global_model)
                     # print(client.model.intercept_)
                     print(client.test_model_f1())
-        if cmd == 'local':
+        if cmd == 'send_api':
             if args.conn == "api":
                 data = client.fed_avg_prepare_data(epochs=10)
                 client.send_local_model(data)

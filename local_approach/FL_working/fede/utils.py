@@ -116,13 +116,15 @@ def set_data(selected_model ,csids=False, downsample = False, data_shuffle = Fal
 
 
 def set_data_mock(selected_model ,csids=False, downsample = False):
-    client1 = Client("node1","127.0.0.1", 5000, selected_model)
-    client2 = Client("node2","127.0.0.1", 5000, selected_model)
-    client3 = Client("node3","127.0.0.1", 5000, selected_model)
+    client1 = Client("node1","127.0.0.1", 5000, selected_model, "api")
+    client2 = Client("node2","127.0.0.1", 5000, selected_model, "api")
+    client3 = Client("node3","127.0.0.1", 5000, selected_model, "api")
+    client4 = Client("node4","127.0.0.1", 5000, selected_model, "api")
 
-    dataset1 = client1.load_data('data/newaa.csv', True)
-    dataset2 = client1.load_data('data/newab.csv', True)
-    dataset3 = client1.load_data('data/newac.csv', True)
+    dataset1 = client1.load_data('data/xac.csv', True)
+    dataset2 = client1.load_data('data/xaf.csv', True)
+    dataset3 = client1.load_data('data/xad.csv', True)
+    dataset4 = client4.load_data('data/xaa.csv', True)
 
 
     #dataset = shuffle(dataset)
@@ -132,10 +134,12 @@ def set_data_mock(selected_model ,csids=False, downsample = False):
     client1.preprocess_data(dataset1, csids)
     client2.preprocess_data(dataset2, csids)
     client3.preprocess_data(dataset3, csids)
+    client4.preprocess_data(dataset4, csids)
 
     client1.prep_data()
     client2.prep_data()
     client3.prep_data()
+    client4.prep_data()
 
     client1.x, client1.x_test, client1.y, client1.y_test = client1.split_data(0.1)
     client2.x, client2.x_test, client2.y, client2.y_test = client2.split_data(0.1)
@@ -143,13 +147,15 @@ def set_data_mock(selected_model ,csids=False, downsample = False):
 
     clients = [client1, client2, client3]
 
-    return clients
+    test_x = client4.x
+    test_y = client4.y
+
+    return clients, test_x, test_y
 
 
 
 def centralized_data(selected_model ,csids=False, data_shuffle = False):
-    client1 = Client("node1","0.0.0.0", 5001, selected_model)
-    client2 = Client("node2","0.0.0.0", 5001, selected_model)
+    client1 = Client("node1","0.0.0.0", 5001, selected_model, "socket")
     if csids:
         dataset = client1.load_data('data/Wednesday-workingHours.pcap_ISCX.csv', True)
         if data_shuffle:
@@ -157,11 +163,8 @@ def centralized_data(selected_model ,csids=False, data_shuffle = False):
         client1.preprocess_data(dataset, csids)
         client1.prep_data()
 
-        X = client1.x[100000:]
-        y = client1.y[100000:]
-
-        test_x = client1.x[:100000]
-        test_y = client1.y[:100000]
+        X = client1.x
+        y = client1.y
 
     else:
         dataset = client1.load_data("data/UNSW_NB15_train-set.csv")
@@ -173,9 +176,6 @@ def centralized_data(selected_model ,csids=False, data_shuffle = False):
         client1.preprocess_data(df, csids)
         client1.prep_data()
 
-        X = client1.x[80000:]
-        y = client1.y[80000:]
-
-        test_x = client1.x[:80000]
-        test_y = client1.y[:80000]
-    return client1, X, y, test_x, test_y
+        X = client1.x
+        y = client1.y
+    return client1, X, y

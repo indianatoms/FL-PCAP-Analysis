@@ -168,7 +168,7 @@ class Fedavg:
         #     BUFF_LIMIT = 50
         # else:
         #     BUFF_LIMIT = 1
-        # print('Waitiing for a Connection...')
+        print('Waitiing for a Connection...')
         # data = b""
         # while True:
         #     packet = connection.recvall(4096) 
@@ -234,7 +234,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
 
-    NUMBER_OF_CLIENTS = 1
+    NUMBER_OF_CLIENTS = 3
     NUMBER_OF_ROUNDS = 10
     
     if args.model == "NN":
