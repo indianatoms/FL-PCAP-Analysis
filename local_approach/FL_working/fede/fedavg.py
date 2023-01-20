@@ -98,8 +98,8 @@ class Fedavg:
             fc2_mean_weight = torch.zeros(size=applicable_models[0].fc2.weight.shape)
             fc2_mean_bias = torch.zeros(size=applicable_models[0].fc2.bias.shape)
             
-            fc3_mean_weight = torch.zeros(size=applicable_models[0].fc3.weight.shape)
-            fc3_mean_bias = torch.zeros(size=applicable_models[0].fc3.bias.shape)
+            # fc3_mean_weight = torch.zeros(size=applicable_models[0].fc3.weight.shape)
+            # fc3_mean_bias = torch.zeros(size=applicable_models[0].fc3.bias.shape)
 
             i = 0
 
@@ -108,16 +108,16 @@ class Fedavg:
                 fc1_mean_bias += model.fc1.bias.data * round_weights[i]
                 fc2_mean_weight += model.fc2.weight.data * round_weights[i]
                 fc2_mean_bias += model.fc2.bias.data * round_weights[i]
-                fc3_mean_weight += model.fc3.weight.data * round_weights[i]
-                fc3_mean_bias += model.fc3.bias.data * round_weights[i]
+                # fc3_mean_weight += model.fc3.weight.data * round_weights[i]
+                # fc3_mean_bias += model.fc3.bias.data * round_weights[i]
                 i += 1
             
             self.model.fc1.weight.data = fc1_mean_weight.data.clone()
             self.model.fc2.weight.data = fc2_mean_weight.data.clone()
-            self.model.fc3.weight.data = fc3_mean_weight.data.clone()
+            # self.model.fc3.weight.data = fc3_mean_weight.data.clone()
             self.model.fc1.bias.data = fc1_mean_bias.data.clone()
             self.model.fc2.bias.data = fc2_mean_bias.data.clone()
-            self.model.fc3.bias.data = fc3_mean_bias.data.clone() 
+            # self.model.fc3.bias.data = fc3_mean_bias.data.clone() 
 
 
     # update each agent model by current global model values

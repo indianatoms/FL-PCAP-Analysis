@@ -5,11 +5,11 @@ from pathlib import Path
 
 # NODEs
 def set_data(selected_model ,csids=False, downsample = False, data_shuffle = False):
-    client1 = Client("node1","0.0.0.0", 5001, selected_model)
-    client2 = Client("node2","0.0.0.0", 5001, selected_model)
-    client3 = Client("node3","0.0.0.0", 5001, selected_model)
-    client4 = Client("node4","0.0.0.0", 5001, selected_model)
-    client5 = Client("node5","0.0.0.0", 5001, selected_model)
+    client1 = Client("node1","0.0.0.0", 5001, selected_model, "api")
+    client2 = Client("node2","0.0.0.0", 5001, selected_model, "api")
+    client3 = Client("node3","0.0.0.0", 5001, selected_model, "api")
+    client4 = Client("node4","0.0.0.0", 5001, selected_model, "api")
+    client5 = Client("node5","0.0.0.0", 5001, selected_model, "api")
 
     if csids:
         dataset = client1.load_data('data/Wednesday-workingHours.pcap_ISCX.csv', True)
@@ -166,6 +166,12 @@ def centralized_data(selected_model ,csids=False, data_shuffle = False):
         X = client1.x
         y = client1.y
 
+        test_x = X[100000:]
+        test_y = y[100000:]
+
+        X = X[:100000]
+        y = y[:100000]
+
     else:
         dataset = client1.load_data("data/UNSW_NB15_train-set.csv")
         test_dataset = client2.load_data("data/UNSW_NB15_test-set.csv")
@@ -178,4 +184,12 @@ def centralized_data(selected_model ,csids=False, data_shuffle = False):
 
         X = client1.x
         y = client1.y
-    return client1, X, y
+
+        test_x = X[180000:]
+        test_y = y[180000:]
+
+        X = X[:180000]
+        y = y[:180000]
+
+
+    return client1, X, y, test_x, test_y

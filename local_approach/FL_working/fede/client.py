@@ -325,10 +325,10 @@ class Client:
         if self.model_name == Supported_modles.NN_classifier:
             self.model.fc1.weight.data = model.fc1.weight.data 
             self.model.fc2.weight.data = model.fc2.weight.data 
-            self.model.fc3.weight.data = model.fc3.weight.data 
+          #  self.model.fc3.weight.data = model.fc3.weight.data 
             self.model.fc1.bias.data = model.fc1.bias.data
             self.model.fc2.bias.data = model.fc2.bias.data
-            self.model.fc3.bias.data = model.fc3.bias.data 
+          #  self.model.fc3.bias.data = model.fc3.bias.data 
         else:
             self.model = model
 
@@ -350,10 +350,10 @@ class Client:
         if self.model_name == Supported_modles.NN_classifier:
             self.model.fc1.weight.data = torch.Tensor(np.array(resp['models']['coefs'][0]))
             self.model.fc2.weight.data = torch.Tensor(np.array(resp['models']['coefs'][1]))
-            self.model.fc3.weight.data = torch.Tensor(np.array(resp['models']['coefs'][2]))
+          #  self.model.fc3.weight.data = torch.Tensor(np.array(resp['models']['coefs'][2]))
             self.model.fc1.bias.data = torch.Tensor(np.array(resp['models']['intercept'][0]))
             self.model.fc2.bias.data = torch.Tensor(np.array(resp['models']['intercept'][1]))
-            self.model.fc3.bias.data = torch.Tensor(np.array(resp['models']['intercept'][2]))
+          #  self.model.fc3.bias.data = torch.Tensor(np.array(resp['models']['intercept'][2]))
     
     def calcualte_global_model(self):
         HOST = self.server_address
@@ -397,12 +397,12 @@ class Client:
             "intercept": [
                 fed.model.fc1.bias.clone().detach().numpy().tolist(),
                 fed.model.fc2.bias.clone().detach().numpy().tolist(),
-                fed.model.fc3.bias.clone().detach().numpy().tolist()
+      #          fed.model.fc3.bias.clone().detach().numpy().tolist()
             ], 
             "coefs": [
                 fed.model.fc1.weight.clone().detach().numpy().tolist(),
                 fed.model.fc2.weight.clone().detach().numpy().tolist(),
-                fed.model.fc3.weight.clone().detach().numpy().tolist(),   
+      #          fed.model.fc3.weight.clone().detach().numpy().tolist(),   
             ], 
             "dataset_size":fed.dataset_size} }
 
