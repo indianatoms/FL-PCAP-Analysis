@@ -58,22 +58,20 @@ def set_data(selected_model ,csids=False, downsample = False, data_shuffle = Fal
     else:
         dataset = client1.load_data("data/UNSW_NB15_train-set.csv")
         test_dataset = client1.load_data("data/UNSW_NB15_test-set.csv")
-        print('test')
         df = pd.concat([dataset,test_dataset], ignore_index=True)
-        filepath = Path('folder/data/out.csv')  
-        filepath.parent.mkdir(parents=True, exist_ok=True)  
-        df.to_csv(filepath)  
-
-
+        # filepath = Path('folder/data/out.csv')  
+        # filepath.parent.mkdir(parents=True, exist_ok=True)  
+        # df.to_csv(filepath)  
 
         if data_shuffle:
+            print('@')
             df = shuffle(df)
 
         clients = [client1, client2, client3, client4, client5]
 
         client1.preprocess_data(df, False)
-        if downsample:
-            client1.downsample_data(['dwin','tcp','swin','udp','INT','ct_dst_src_ltm'])
+        # if downsample:
+        #     client1.downsample_data(['dwin','tcp','swin','udp','INT','ct_dst_src_ltm'])
 
         client1.prep_data()
 
