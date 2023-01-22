@@ -368,11 +368,11 @@ def calcualte_fedavg_model(current_user):
     if model_type == "NeuralNetworkClassifier":
         fc1_bias = np.zeros(np.array(model.model_parameters['intercept'][0]).shape)
         fc2_bias = np.zeros(np.array(model.model_parameters['intercept'][1]).shape)
-        fc3_bias = np.zeros(np.array(model.model_parameters['intercept'][2]).shape)
+        # fc3_bias = np.zeros(np.array(model.model_parameters['intercept'][2]).shape)
 
         fc1_weights = np.zeros(np.array(model.model_parameters['coefs'][0]).shape)
         fc2_weights = np.zeros(np.array(model.model_parameters['coefs'][1]).shape)
-        fc3_weights = np.zeros(np.array(model.model_parameters['coefs'][2]).shape)
+        # fc3_weights = np.zeros(np.array(model.model_parameters['coefs'][2]).shape)
 
         dataset_total = 0
 
@@ -382,23 +382,23 @@ def calcualte_fedavg_model(current_user):
 
             fc1_bias += np.array(model.model_parameters['intercept'][0]) * model.model_parameters['dataset_size'] 
             fc2_bias += np.array(model.model_parameters['intercept'][1]) * model.model_parameters['dataset_size']
-            fc3_bias += np.array(model.model_parameters['intercept'][2]) * model.model_parameters['dataset_size']
+            # fc3_bias += np.array(model.model_parameters['intercept'][2]) * model.model_parameters['dataset_size']
 
             fc1_weights += np.array(model.model_parameters['coefs'][0]) * model.model_parameters['dataset_size']
             fc2_weights += np.array(model.model_parameters['coefs'][1]) * model.model_parameters['dataset_size']
-            fc3_weights += np.array(model.model_parameters['coefs'][2]) * model.model_parameters['dataset_size']
+            # fc3_weights += np.array(model.model_parameters['coefs'][2]) * model.model_parameters['dataset_size']
 
             dataset_total += model.model_parameters['dataset_size']
         
         fc1_bias_avg = fc1_bias / dataset_total 
         fc2_bias_avg = fc2_bias / dataset_total
-        fc3_bias_avg = fc3_bias / dataset_total
+        # fc3_bias_avg = fc3_bias / dataset_total
 
         fc1_weight_avg = fc1_weights / dataset_total
         fc2_weight_avg = fc2_weights / dataset_total
-        fc3_weight_avg = fc3_weights / dataset_total
+        # fc3_weight_avg = fc3_weights / dataset_total
 
-        model_json = { "intercept": [fc1_bias_avg.tolist(),fc2_bias_avg.tolist(),fc3_bias_avg.tolist()], "coefs": [fc1_weight_avg.tolist(), fc2_weight_avg.tolist(), fc3_weight_avg.tolist()] }
+        model_json = { "intercept": [fc1_bias_avg.tolist(),fc2_bias_avg.tolist()], "coefs": [fc1_weight_avg.tolist(), fc2_weight_avg.tolist()] }
 
 
     model = Model(
