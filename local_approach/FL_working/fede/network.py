@@ -1,9 +1,10 @@
 from torch import nn
 import torch.nn.functional as F
+import math
 
 class Net2nn(nn.Module):
     def __init__(self, input_neurons):
-        hidden_neurons = input_neurons+2
+        hidden_neurons = math.floor((input_neurons+2)/2)
         super(Net2nn, self).__init__()
         self.fc1=nn.Linear(input_neurons,hidden_neurons)
         self.fc2=nn.Linear(hidden_neurons,2)
