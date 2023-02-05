@@ -233,7 +233,7 @@ if __name__ == "__main__":
 
 
     NUMBER_OF_CLIENTS = 3
-    NUMBER_OF_ROUNDS = 5
+    NUMBER_OF_ROUNDS = 7
     
     if args.model == "NN":
         selected_model = Supported_modles.NN_classifier
@@ -243,7 +243,7 @@ if __name__ == "__main__":
         selected_model = Supported_modles.logistic_regression
     
     client1 = Client("node1","0.0.0.0", 5001, selected_model, "socket")
-    dataset = client1.load_data('../data/xaa.csv', True)
+    dataset = client1.load_data('../data/newaa.csv', True)
     client1.preprocess_data(dataset, True)
     client1.prep_data()
     test_x = client1.x

@@ -508,7 +508,7 @@ if __name__ == "__main__":
             client.get_global_model()
         if cmd == 'send':
             if args.conn == "socket":
-                for round in range (5):
+                for round in range (7):
                     print(f'Staring round: {round}')
                     print(f'Training model')
                     start_time = time.time()
