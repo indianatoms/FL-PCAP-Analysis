@@ -233,7 +233,7 @@ if __name__ == "__main__":
 
 
     NUMBER_OF_CLIENTS = 3
-    NUMBER_OF_ROUNDS = 7
+    NUMBER_OF_ROUNDS = 10
     
     if args.model == "NN":
         selected_model = Supported_modles.NN_classifier
