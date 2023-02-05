@@ -119,10 +119,10 @@ def set_data_mock(selected_model ,csids=False, downsample = False):
     client3 = Client("node3","127.0.0.1", 5000, selected_model, "api")
     client4 = Client("node4","127.0.0.1", 5000, selected_model, "api")
 
-    dataset1 = client1.load_data('data/xac.csv', True)
-    dataset2 = client1.load_data('data/xaf.csv', True)
-    dataset3 = client1.load_data('data/xad.csv', True)
-    dataset4 = client4.load_data('data/xaa.csv', True)
+    dataset1 = client1.load_data('data/newad.csv', True)
+    dataset2 = client1.load_data('data/newab.csv', True)
+    dataset3 = client1.load_data('data/newac.csv', True)
+    dataset4 = client4.load_data('data/newaa.csv', True)
 
 
     #dataset = shuffle(dataset)
@@ -132,16 +132,16 @@ def set_data_mock(selected_model ,csids=False, downsample = False):
     client1.preprocess_data(dataset1, csids)
     client2.preprocess_data(dataset2, csids)
     client3.preprocess_data(dataset3, csids)
-    client4.preprocess_data(dataset4, csids)
+    client4.preprocess_data(dataset4, csids, False)
 
     client1.prep_data()
     client2.prep_data()
     client3.prep_data()
     client4.prep_data()
 
-    client1.x, client1.x_test, client1.y, client1.y_test = client1.split_data(0.1)
-    client2.x, client2.x_test, client2.y, client2.y_test = client2.split_data(0.1)
-    client3.x, client3.x_test, client3.y, client3.y_test = client3.split_data(0.1)
+    client1.x, client1.x_test, client1.y, client1.y_test = client1.split_data(0.01)
+    client2.x, client2.x_test, client2.y, client2.y_test = client2.split_data(0.01)
+    client3.x, client3.x_test, client3.y, client3.y_test = client3.split_data(0.01)
 
     clients = [client1, client2, client3]
 

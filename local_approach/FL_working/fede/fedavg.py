@@ -70,8 +70,6 @@ class Fedavg:
     def init_global_model(self, model):
         self.model = model
         
-
-
     def register_client(self, clients):
         self.clients = clients
 
@@ -235,7 +233,7 @@ if __name__ == "__main__":
 
 
     NUMBER_OF_CLIENTS = 3
-    NUMBER_OF_ROUNDS = 10
+    NUMBER_OF_ROUNDS = 5
     
     if args.model == "NN":
         selected_model = Supported_modles.NN_classifier
