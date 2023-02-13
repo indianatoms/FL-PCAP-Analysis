@@ -46,14 +46,18 @@ class GlobalModel:
             if self.model_name == Supported_modles.NN_classifier:
                 self.model = applicable_clients[0].model
 
-            fc1_mean_weight = torch.zeros(size=applicable_clients[0].model.fc1.weight.shape)
+            fc1_mean_weight = torch.zeros(
+                size=applicable_clients[0].model.fc1.weight.shape
+            )
             fc1_mean_bias = torch.zeros(size=applicable_clients[0].model.fc1.bias.shape)
-    
-            fc2_mean_weight = torch.zeros(size=applicable_clients[0].model.fc2.weight.shape)
+
+            fc2_mean_weight = torch.zeros(
+                size=applicable_clients[0].model.fc2.weight.shape
+            )
             fc2_mean_bias = torch.zeros(size=applicable_clients[0].model.fc2.bias.shape)
-            
+
             # fc3_mean_weight = torch.zeros(size=applicable_clients[0].model.fc3.weight.shape)
-            # fc3_mean_bias = torch.zeros(size=applicable_clients[0].model.fc3.bias.shape) 
+            # fc3_mean_bias = torch.zeros(size=applicable_clients[0].model.fc3.bias.shape)
 
             i = 0
 
@@ -65,14 +69,13 @@ class GlobalModel:
                 # fc3_mean_weight += client.model.fc3.weight.data * round_weights[i]
                 # fc3_mean_bias += client.model.fc3.bias.data * round_weights[i]
                 i += 1
-            
+
             self.model.fc1.weight.data = fc1_mean_weight.data.clone()
             self.model.fc2.weight.data = fc2_mean_weight.data.clone()
             # self.model.fc3.weight.data = fc3_mean_weight.data.clone()
             self.model.fc1.bias.data = fc1_mean_bias.data.clone()
             self.model.fc2.bias.data = fc2_mean_bias.data.clone()
-            # self.model.fc3.bias.data = fc3_mean_bias.data.clone() 
-        
+            # self.model.fc3.bias.data = fc3_mean_bias.data.clone()
 
     def f1_score(self, X_test, y_test):
         if self.model is None:
@@ -82,7 +85,7 @@ class GlobalModel:
             X_test = self.x_test
             y_test = self.y_test
         if self.model_name == Supported_modles.NN_classifier:
-            test_x = np.float32(X_test)  
+            test_x = np.float32(X_test)
             test_x = torch.FloatTensor(X_test)
             output = self.model(test_x)
             y_hat = output.argmax(dim=1, keepdim=True)
@@ -93,7 +96,3 @@ class GlobalModel:
     def accuracy(self, x_test, y_test):
         y_hat = self.model.predict(x_test)
         return accuracy_score(y_test, y_hat)
-
-
-
-    
